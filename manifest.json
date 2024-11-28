@@ -1,0 +1,37 @@
+{
+    "format_version": 2,
+    "header": {
+        "description": "",
+        "name": "ScriptUtils",
+        "uuid": "e67fc386-61bd-480d-b266-b96f24ea25fc",
+        "version": [0, 0, 0],
+        "min_engine_version": [1, 21, 44]
+    },
+    "modules": [
+        {
+            "description": "",
+            "type": "data",
+            "uuid": "94afe38a-cd96-4f4e-b146-d20e29807043",
+            "version": [0, 0, 0]
+        },
+        {
+            "description": "",
+            "type": "script",
+            "language": "JavaScript",
+            "uuid": "4aca5168-ccb3-4699-a958-231516adcb07",
+            "version": [0, 0, 0],
+            "entry": "scripts/dest/main.js"
+        }
+    ],
+    "capabilities": ["script_eval"],
+    "dependencies": [
+        {
+            "module_name": "@minecraft/server",
+            "version": "1.16.0-beta"
+        },
+        {
+            "module_name": "@minecraft/server-ui",
+            "version": "1.4.0-beta"
+        }
+    ]
+}

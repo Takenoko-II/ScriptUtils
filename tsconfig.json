@@ -1,0 +1,16 @@
+{
+    "include": ["scripts/src/"],
+    "exclude": [],
+    "compilerOptions": {
+      "allowJs": true,
+      "checkJs": true,
+      "module": "ES2020",
+      "target": "es2021",
+      "lib": ["ES2015.Collection"],
+      "moduleResolution": "node",
+      "esModuleInterop": true,
+      "strictNullChecks": false,
+      "rootDir": "scripts/src",
+      "outDir": "scripts/dest"
+    }
+}
