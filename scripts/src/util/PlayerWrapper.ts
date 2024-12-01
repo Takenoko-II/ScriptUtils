@@ -1,4 +1,4 @@
-import { Container, ContainerSlot, Entity, EntityComponentTypes, EntityEquippableComponent, EquipmentSlot, ItemStack, Player, PlayerCursorInventoryComponent, Vector3 } from "@minecraft/server";
+import { Container, ContainerSlot, Entity, EntityComponentTypes, EntityEquippableComponent, EquipmentSlot, ItemStack, Player, Vector3 } from "@minecraft/server";
 import { TripleAxisRotationBuilder, Vector3Builder } from "./Vector";
 
 export class PlayerWrapper {

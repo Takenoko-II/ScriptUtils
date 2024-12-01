@@ -1,4 +1,4 @@
-export class Serializable {
+export abstract class Serializable {
     public serialize(): string {
         return Serializable.any(this, 1);
     }
