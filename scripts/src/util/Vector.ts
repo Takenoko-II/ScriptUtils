@@ -1,4 +1,4 @@
-import { Vector2, Vector3 } from "@minecraft/server";
+import { Vector2, Vector3, VectorXZ } from "@minecraft/server";
 
 import { Serializable } from "./Serializable";
 
@@ -396,6 +396,14 @@ export class Vector3Builder extends Serializable implements Vector3 {
             && isValidNumber(z);
     }
 
+    public static isValidVectorXZ(value: unknown): value is VectorXZ {
+        const x: unknown = value["x"];
+        const z: unknown = value["z"];
+
+        return isValidNumber(x)
+            && isValidNumber(z);
+    }
+
     public static zero(): Vector3Builder {
         return new this(0, 0, 0);
     }
@@ -428,8 +436,17 @@ export class Vector3Builder extends Serializable implements Vector3 {
         return new Vector3Builder(value, value, value);
     }
 
-    public static from(vector3: Vector3): Vector3Builder {
-        return new this(vector3.x, vector3.y, vector3.z);
+    public static from(vector3: Vector3): Vector3Builder;
+
+    public static from(vectorXZ: VectorXZ, y?: number): Vector3Builder;
+
+    public static from(vector: Vector3 | VectorXZ, y: number = 0): Vector3Builder {
+        if (this.isValidVector3(vector)) {
+            return new this(vector.x, vector.y, vector.z);
+        }
+        else if (this.isValidVectorXZ(vector)) {
+            return new this(vector.x, y, vector.z);
+        }
     }
 
     public static min(a: Vector3, b: Vector3): Vector3Builder {
