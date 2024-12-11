@@ -6,6 +6,26 @@ function isValidNumber(x: unknown): x is number {
     return typeof x === "number" && !Number.isNaN(x);
 }
 
+export interface ForzenVector3 extends Vector3 {
+    readonly x: number;
+
+    readonly y: number;
+
+    readonly z: number;
+}
+
+export interface FrozenVector2 extends Vector2 {
+    readonly x: number;
+
+    readonly y: number;
+}
+
+export interface FrozenVectorXZ extends VectorXZ {
+    readonly x: number;
+
+    readonly z: number;
+}
+
 export class Vector3Builder extends Serializable implements Vector3 {
     private __x__: number;
     private __y__: number;
@@ -382,8 +402,12 @@ export class Vector3Builder extends Serializable implements Vector3 {
         return this.equals(Vector3Builder.zero());
     }
 
-    public asInterface(): Vector3 {
-        return { x: this.x, y: this.y, z: this.z };
+    public freeze(): ForzenVector3 {
+        return Object.freeze({ x: this.x, y: this.y, z: this.z });
+    }
+
+    public freezeAsXZ(): FrozenVectorXZ {
+        return Object.freeze({ x: this.x, z: this.z });
     }
 
     public static isValidVector3(value: unknown): value is Vector3 {
@@ -674,8 +698,8 @@ export class TripleAxisRotationBuilder extends Serializable implements Vector2 {
         return this.equals(TripleAxisRotationBuilder.zero());
     }
 
-    public asInterface(): Vector2 {
-        return { x: this.x, y: this.y };
+    public freeze(): FrozenVector2 {
+        return Object.freeze({ x: this.x, y: this.y });
     }
 
     public static isValidVector2(value: unknown): value is Vector2 {
