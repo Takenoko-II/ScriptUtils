@@ -16,8 +16,13 @@ export class PlayerWrapper {
         return this.__player__;
     }
 
-    public giveItem(itemStack: ItemStack): void {    
-        const container: Container = this.__player__.getComponent(EntityComponentTypes.Inventory).container;
+    public giveItem(itemStack: ItemStack): void {
+        const container: Container | undefined = this.__player__.getComponent(EntityComponentTypes.Inventory)?.container;
+
+        if (container === undefined) {
+            throw new TypeError("Undefined Container");
+        }
+
         const clone: ItemStack = itemStack.clone();
 
         let remainingAmount: number = itemStack.amount;
@@ -58,25 +63,33 @@ export class PlayerWrapper {
     }
 
     public hasItem(predicate: (itemStack: ItemStack) => boolean): boolean {
-        const container: Container = this.__player__.getComponent(EntityComponentTypes.Inventory).container;
+        const container: Container | undefined = this.__player__.getComponent(EntityComponentTypes.Inventory)?.container;
+
+        if (container === undefined) {
+            throw new TypeError("Undefined container");
+        }
 
         for (let i = 0; i < container.size; i++) {
             const slot: ContainerSlot = container.getSlot(i);
             if (!slot.hasItem()) continue;
-            if (predicate(slot.getItem())) return true;
+            if (predicate(slot.getItem() as ItemStack)) return true;
         }
 
-        const equippableComponent: EntityEquippableComponent = this.__player__.getComponent(EntityComponentTypes.Equippable);
+        const equippableComponent: EntityEquippableComponent | undefined = this.__player__.getComponent(EntityComponentTypes.Equippable);
+
+        if (equippableComponent === undefined) {
+            throw new TypeError("Undefined equipment");
+        }
 
         for (const slotId of Object.values(EquipmentSlot)) {
             if (slotId === EquipmentSlot.Mainhand) continue;
 
             const slot = equippableComponent.getEquipmentSlot(slotId);
             if (!slot.hasItem()) continue;
-            if (predicate(slot.getItem())) return true;
+            if (predicate(slot.getItem() as ItemStack)) return true;
         }
 
-        const cursorItem: ItemStack | undefined = this.__player__.getComponent(EntityComponentTypes.CursorInventory).item;
+        const cursorItem: ItemStack | undefined = this.__player__.getComponent(EntityComponentTypes.CursorInventory)?.item;
 
         if (cursorItem) {
             if (predicate(cursorItem)) return true;
@@ -110,7 +123,7 @@ export class PlayerWrapper {
 
     public static wrap(player: Player): PlayerWrapper {
         if (this.__wrapperMap__.has(player)) {
-            return this.__wrapperMap__.get(player);
+            return this.__wrapperMap__.get(player) as PlayerWrapper;
         }
         else {
             const instance = new this(player);

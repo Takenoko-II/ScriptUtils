@@ -1,6 +1,6 @@
 import { Vector2, Vector3, VectorXZ } from "@minecraft/server";
 
-import { Serializable } from "./Serializable";
+import { Serializer } from "./Serializable";
 
 function isValidNumber(x: unknown): x is number {
     return typeof x === "number" && !Number.isNaN(x);
@@ -26,13 +26,12 @@ export interface FrozenVectorXZ extends VectorXZ {
     readonly z: number;
 }
 
-export class Vector3Builder extends Serializable implements Vector3 {
+export class Vector3Builder implements Vector3 {
     private __x__: number;
     private __y__: number;
     private __z__: number;
 
     public constructor(x: number, y: number, z: number) {
-        super();
         if (!(isValidNumber(x) && isValidNumber(y) && isValidNumber(z))) {
             throw new TypeError();
         }
@@ -411,6 +410,10 @@ export class Vector3Builder extends Serializable implements Vector3 {
     }
 
     public static isValidVector3(value: unknown): value is Vector3 {
+        if (value === undefined || value === null) {
+            return false;
+        }
+
         const x: unknown = value["x"];
         const y: unknown = value["y"];
         const z: unknown = value["z"];
@@ -421,6 +424,10 @@ export class Vector3Builder extends Serializable implements Vector3 {
     }
 
     public static isValidVectorXZ(value: unknown): value is VectorXZ {
+        if (value === undefined || value === null) {
+            return false;
+        }
+
         const x: unknown = value["x"];
         const z: unknown = value["z"];
 
@@ -471,6 +478,9 @@ export class Vector3Builder extends Serializable implements Vector3 {
         else if (this.isValidVectorXZ(vector)) {
             return new this(vector.x, y, vector.z);
         }
+        else {
+            throw new TypeError("Unknown Type Value");
+        }
     }
 
     public static min(a: Vector3, b: Vector3): Vector3Builder {
@@ -482,13 +492,12 @@ export class Vector3Builder extends Serializable implements Vector3 {
     }
 }
 
-export class TripleAxisRotationBuilder extends Serializable implements Vector2 {
+export class TripleAxisRotationBuilder implements Vector2 {
     private __yaw__: number;
     private __pitch__: number;
     private __roll__: number;
 
     public constructor(yaw: number, pitch: number, roll: number) {
-        super();
         if (!(isValidNumber(yaw) && isValidNumber(pitch) && isValidNumber(roll))) {
             throw new TypeError();
         }
@@ -703,6 +712,10 @@ export class TripleAxisRotationBuilder extends Serializable implements Vector2 {
     }
 
     public static isValidVector2(value: unknown): value is Vector2 {
+        if (value === undefined || value === null) {
+            return false;
+        }
+
         const x: unknown = value["x"];
         const y: unknown = value["y"];
 

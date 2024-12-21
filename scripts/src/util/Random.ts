@@ -35,6 +35,10 @@ export class RandomHandler {
     }
 
     public static choice<T>(value: T): T[keyof T] {
+        if (value === undefined || value === null) {
+            throw new TypeError("Unknown Type Value");
+        }
+
         const keys = Object.keys(value);
         const index = this.generate({ min: 0, max: keys.length - 1 });
 
@@ -76,14 +80,16 @@ export class RandomHandler {
     }
 
     public static choiceByWeight(list: number[]): number {    
-        const summary = list.reduce((a, b) => a + b);
-        const random = Math.floor(Math.random() * summary) + 1;
+        const sum = list.reduce((a, b) => a + b);
+        const random = Math.floor(Math.random() * sum) + 1;
     
         let totalWeight = 0;
         for (const [index, weight] of list.entries()) {
             totalWeight += weight;
             if (totalWeight >= random) return index;
         }
+
+        throw new TypeError("NEVER HAPPENS");
     }
 }
 
@@ -96,6 +102,10 @@ export class Xorshift32 {
     public constructor(seed: number) {
         this.w = seed;
     }
+
+    public rand(): number;
+
+    public rand(range: NumberRange): number;
 
     public rand(range?: NumberRange): number {
         let t = this.x ^ (this.x << 11);
