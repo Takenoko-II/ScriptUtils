@@ -51,18 +51,18 @@ export class RandomHandler {
         return value[key];
     }
 
-    public static chance(chance = 0.5) {
+    public static chance(chance = 0.5): boolean {
         const number = Math.random() + chance;
         if (number >= 1) return true;
         else return false;
     }
 
-    public static sign() {
+    public static sign(): 1 | -1 {
         if (this.chance()) return 1;
         return -1;
     }
 
-    public static uuid() {
+    public static uuid(): string {
         const chars = 'xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx'.split('');
 
         for (let i = 0; i < chars.length; i++) {
@@ -133,7 +133,7 @@ export class Xorshift32 {
         return this.w;
     }
 
-    uuid() {
+    public uuid(): string {
         const chars = 'xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx'.split('');
 
         for (let i = 0; i < chars.length; i++) {
@@ -150,7 +150,7 @@ export class Xorshift32 {
         return chars.join('');
     }
 
-    shuffle<T>(list: T[]): T[] {
+    public shuffle<T>(list: T[]): T[] {
         const clone = [...list];
 
         if (list.length <= 1) return clone;
