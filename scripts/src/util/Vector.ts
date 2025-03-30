@@ -408,7 +408,7 @@ export class Vector3Builder implements Vector3 {
     }
 
     public static isValidVector3(value: unknown): value is Vector3 {
-        if (value === undefined || value === null) {
+        if (typeof value !== "object" || value === undefined || value === null) {
             return false;
         }
 
@@ -422,7 +422,7 @@ export class Vector3Builder implements Vector3 {
     }
 
     public static isValidVectorXZ(value: unknown): value is VectorXZ {
-        if (value === undefined || value === null) {
+        if (typeof value !== "object" || value === undefined || value === null) {
             return false;
         }
 
