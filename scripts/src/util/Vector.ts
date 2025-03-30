@@ -482,8 +482,8 @@ export class Vector3Builder implements Vector3 {
             switch (arg0) {
                 case Direction.Up: return Vector3Builder.up();
                 case Direction.Down: return Vector3Builder.down();
-                case Direction.North: return Vector3Builder.forward();
-                case Direction.South: return Vector3Builder.back();
+                case Direction.North: return Vector3Builder.back();
+                case Direction.South: return Vector3Builder.forward();
                 case Direction.East: return Vector3Builder.left();
                 case Direction.West: return Vector3Builder.right();
                 default: throw new TypeError("Unknown Direction Value");
