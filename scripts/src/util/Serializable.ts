@@ -45,8 +45,14 @@ export class Serializer {
         }
     }
 
-    public serialize(value: any): string {
-        return this.any(value, 1);
+    public serialize(value: unknown): string {
+        return this.unknown(new Set(), value, 1);
+    }
+
+    protected createRef(ref: Set<unknown>, obj: unknown): Set<unknown> {
+        const cSet: Set<unknown> = new Set(ref);
+        cSet.add(obj);
+        return cSet;
     }
 
     protected getPropertiesOf(object: object): string[] {
@@ -111,7 +117,7 @@ export class Serializer {
         return this.__linebreakable__ ? Serializer.LINEBREAK : Serializer.EMPTY;
     }
 
-    protected prototype(object: object, indentation: number): string {
+    protected prototype(ref: Set<unknown>, object: object, indentation: number): string {
         const prototype: object | null = this.getPrototypeOf(object);
 
         let string = Serializer.EMPTY;
@@ -138,7 +144,7 @@ export class Serializer {
             + Serializer.PROTOTYPE
             + Serializer.COLON
             + Serializer.WHITESPACE
-            + this.object(prototype, indentation + 1, forceAsObject);
+            + this.object(ref, prototype, indentation + 1, forceAsObject);
 
         return string;
     }
@@ -191,9 +197,9 @@ export class Serializer {
         }
     }
 
-    protected object(object: object, indentation: number, forceAsObject: boolean = false): string {
+    protected object(ref: Set<unknown>, object: object, indentation: number, forceAsObject: boolean = false): string {
         if (Array.isArray(object) && !forceAsObject) {
-            return this.array(object, indentation);
+            return this.array(ref, object, indentation);
         }
         else if (object === null) {
             return this.null();
@@ -203,16 +209,20 @@ export class Serializer {
 
         const keys: string[] = this.getPropertiesOf(object);
 
+        const toAdd: Set<unknown> = new Set();
+
         for (let i = 0; i < keys.length; i++) {
             const key: string = keys[i];
 
             const v = Reflect.get(object, key);
 
-            if (object === v) {
+            if (ref.has(v)) {
                 throw new Error("Circular object reference detection");
             }
 
-            const value: string = this.any(v, indentation + 1);
+            toAdd.add(v);
+
+            const value: string = this.unknown(this.createRef(ref, v), v, indentation + 1);
 
             str += this.linebreak()
                 + this.indentation(indentation)
@@ -226,7 +236,9 @@ export class Serializer {
             }
         }
 
-        const prototype = this.prototype(object, indentation);
+        toAdd.forEach(v => ref.add(v));
+
+        const prototype = this.prototype(ref, object, indentation);
 
         str += prototype;
 
@@ -240,17 +252,21 @@ export class Serializer {
         return str;
     }
 
-    protected array(array: any[], indentation: number): string {
+    protected array(ref: Set<unknown>, array: any[], indentation: number): string {
         let str: string = Serializer.ARRAY_BRACES[0];
+
+        const toAdd: Set<unknown> = new Set();
 
         for (let i = 0; i < array.length; i++) {
             const v = array[i];
 
-            if (array === v) {
-                throw new Error("Circular array reference detection");
+            if (ref.has(v)) {
+                throw new TypeError("Circular object reference detection");
             }
 
-            const value: string = this.any(v, indentation + 1);
+            toAdd.add(v);
+
+            const value: string = this.unknown(this.createRef(ref, v), v, indentation + 1);
 
             str += this.linebreak()
                 + this.indentation(indentation)
@@ -261,7 +277,9 @@ export class Serializer {
             }
         }
 
-        const prototype = this.prototype(array, indentation);
+        toAdd.forEach(v => ref.add(v));
+
+        const prototype = this.prototype(ref, array, indentation);
 
         str += prototype;
 
@@ -275,50 +293,50 @@ export class Serializer {
         return str;
     }
 
-    protected map(map: Map<unknown, unknown>, indentation: number): string {
+    protected map(ref: Set<unknown>, map: Map<unknown, unknown>, indentation: number): string {
         const obj: object = {};
 
         map.forEach((v, k) => {
-            if (map === v) {
-                throw new Error("Circular map reference detection");
+            if (ref.has(v)) {
+                throw new TypeError("Circular object reference detection");
             }
 
-            Reflect.set(obj, (typeof k === "string") ? k : this.any(k, indentation), v);
+            Reflect.set(obj, (typeof k === "string") ? k : this.unknown(ref, k, indentation), v);
         });
 
         return Serializer.MAP
             + Serializer.CLASS_INSTANCE_BRACES[0]
-            + this.object(obj, indentation)
+            + this.object(ref, obj, indentation)
             + Serializer.CLASS_INSTANCE_BRACES[1];
     }
 
-    protected set(set: Set<unknown>, indentation: number): string {
+    protected set(ref: Set<unknown>, set: Set<unknown>, indentation: number): string {
         const arr: unknown[] = [];
 
         set.forEach(value => {
-            if (set === value) {
-                throw new Error("Circular set reference detection");
+            if (ref.has(value)) {
+                throw new TypeError("Circular object reference detection");
             }
 
-            arr.push((typeof value === "string") ? value : this.any(value, indentation));
+            arr.push((typeof value === "string") ? value : this.unknown(ref, value, indentation));
         });
 
         return Serializer.SET
             + Serializer.WHITESPACE
             + Serializer.CLASS_INSTANCE_BRACES[0]
-            + this.array(arr, indentation)
+            + this.array(ref, arr, indentation)
             + Serializer.CLASS_INSTANCE_BRACES[1];
     }
 
-    protected any(any: any, indentation: number): string {
+    protected unknown(ref: Set<unknown>, any: any, indentation: number): string {
         if (any === null) {
             return this.null();
         }
         else if (any instanceof Map) {
-            return this.map(any, indentation);
+            return this.map(ref, any, indentation);
         }
         else if (any instanceof Set) {
-            return this.set(any, indentation);
+            return this.set(ref, any, indentation);
         }
 
         switch (typeof any) {
@@ -337,7 +355,7 @@ export class Serializer {
             case "function":
                 return this.function(any);
             case "object":
-                return this.object(any, indentation);
+                return this.object(ref, any, indentation);
             default:
                 throw new Error("NEVER HAPPENS");
         }
