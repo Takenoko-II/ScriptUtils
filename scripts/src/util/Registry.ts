@@ -53,8 +53,18 @@ export class ImmutableRegistry<I, O> {
     }
 }
 
+interface RegistryLookupResult<O> {
+    readonly name: string;
+
+    readonly value: O;
+}
+
 class RegistryLookup<O> {
     public constructor(private readonly __registry__: Map<string, O>) {}
+
+    public has(name: string): boolean {
+        return this.__registry__.has(name);
+    }
 
     public find(name: string): O {
         if (this.__registry__.has(name)) {
@@ -63,6 +73,19 @@ class RegistryLookup<O> {
         else {
             throw new RegistryError();
         }
+    }
+
+    public getAllInNameLongestOrder(): RegistryLookupResult<O>[] {
+        const array: RegistryLookupResult<O>[] = [];
+
+        this.__registry__.forEach((v, k) => {
+            array.push({
+                name: k,
+                value: v
+            })
+        });
+
+        return array.sort((a, b) => b.name.length - a.name.length);
     }
 }
 
