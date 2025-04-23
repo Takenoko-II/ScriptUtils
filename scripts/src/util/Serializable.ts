@@ -1,28 +1,51 @@
+import { IntRange } from "./NumberRange.js";
+
+interface SerializerProperties {
+    indentationSpaceCount: number;
+
+    linebreakable: boolean;
+
+    circularReferenceStringify: boolean;
+
+    readonly hiddenPrototypes: Set<object>;
+}
+
+export class SerializationError extends Error {}
+
 export class Serializer {
-    private __indentationSpaceCount__: number = 4;
-
-    private __linebreakable__: boolean = true;
-
-    private readonly hiddenPrototypes: Set<object> = new Set();
+    private readonly properties: SerializerProperties = {
+        indentationSpaceCount: 4,
+        linebreakable: true,
+        circularReferenceStringify: true,
+        hiddenPrototypes: new Set()
+    };
 
     public get indentationSpaceCount(): number {
-        return this.__indentationSpaceCount__;
+        return this.properties.indentationSpaceCount
     }
 
     public set indentationSpaceCount(value: number) {
-        if (Number.isNaN(value) || value < 0 || value > 20) {
+        if (IntRange.minMax(0, 20).within(value)) {
             throw new TypeError("Indentation space count must not be NaN, must be integer, and must be within range(0, 20)");
         }
 
-        this.__indentationSpaceCount__ = value;
+        this.properties.indentationSpaceCount = value;
     }
 
     public get linebreakable(): boolean {
-        return this.__linebreakable__;
+        return this.properties.linebreakable;
     }
 
     public set linebreakable(value: boolean) {
-        this.__linebreakable__ = value;
+        this.properties.linebreakable = value;
+    }
+
+    public get circularReferenceStringify(): boolean {
+        return this.properties.circularReferenceStringify;
+    }
+
+    public set circularReferenceStringify(value: boolean) {
+        this.properties.circularReferenceStringify = value;
     }
 
     public hidePrototypeOf(clazz: Function) {
@@ -30,8 +53,8 @@ export class Serializer {
             throw new TypeError("It does not have prototype");
         }
 
-        if (!this.hiddenPrototypes.has(clazz.prototype)) {
-            this.hiddenPrototypes.add(clazz.prototype);
+        if (!this.properties.hiddenPrototypes.has(clazz.prototype)) {
+            this.properties.hiddenPrototypes.add(clazz.prototype);
         }
     }
 
@@ -40,8 +63,8 @@ export class Serializer {
             throw new TypeError("It does not have prototype");
         }
 
-        if (this.hiddenPrototypes.has(clazz.prototype)) {
-            this.hiddenPrototypes.delete(clazz);
+        if (this.properties.hiddenPrototypes.has(clazz.prototype)) {
+            this.properties.hiddenPrototypes.delete(clazz);
         }
     }
 
@@ -49,10 +72,19 @@ export class Serializer {
         return this.unknown(new Set(), value, 1);
     }
 
-    protected createRef(ref: Set<unknown>, obj: unknown): Set<unknown> {
+    protected newReference(ref: Set<unknown>, obj: unknown): Set<unknown> {
         const cSet: Set<unknown> = new Set(ref);
         cSet.add(obj);
         return cSet;
+    }
+
+    protected getCircularReference(): string {
+        if (this.properties.circularReferenceStringify) {
+            return Serializer.CIRCULAR_REFERENCE_OBJECT;
+        }
+        else {
+            throw new SerializationError("Circular prototype reference detection");
+        }
     }
 
     protected getPropertiesOf(object: object): string[] {
@@ -63,10 +95,10 @@ export class Serializer {
         const prototype: object = Object.getPrototypeOf(object);
 
         if (object === prototype) {
-            throw new Error("Circular prototype reference detection");
+            this.getCircularReference();
         }
 
-        if (this.hiddenPrototypes.has(prototype)) {
+        if (this.properties.hiddenPrototypes.has(prototype)) {
             return null;
         }
         else {
@@ -110,11 +142,11 @@ export class Serializer {
     }
 
     protected indentation(count: number): string {
-        return Serializer.WHITESPACE.repeat(this.__indentationSpaceCount__).repeat(count);
+        return Serializer.WHITESPACE.repeat(this.properties.indentationSpaceCount).repeat(count);
     }
 
     protected linebreak(): string {
-        return this.__linebreakable__ ? Serializer.LINEBREAK : Serializer.EMPTY;
+        return this.properties.linebreakable ? Serializer.LINEBREAK : Serializer.EMPTY;
     }
 
     protected prototype(ref: Set<unknown>, object: object, indentation: number): string {
@@ -216,13 +248,16 @@ export class Serializer {
 
             const v = Reflect.get(object, key);
 
+            let value: string;
+
             if (ref.has(v)) {
-                throw new Error("Circular object reference detection");
+                value = this.getCircularReference();
+            }
+            else {
+                value = this.unknown(this.newReference(ref, v), v, indentation + 1);
             }
 
             toAdd.add(v);
-
-            const value: string = this.unknown(this.createRef(ref, v), v, indentation + 1);
 
             str += this.linebreak()
                 + this.indentation(indentation)
@@ -260,13 +295,15 @@ export class Serializer {
         for (let i = 0; i < array.length; i++) {
             const v = array[i];
 
+            let value: string;
             if (ref.has(v)) {
-                throw new TypeError("Circular object reference detection");
+                value = this.getCircularReference();
+            }
+            else {
+                value = this.unknown(this.newReference(ref, v), v, indentation + 1);
             }
 
             toAdd.add(v);
-
-            const value: string = this.unknown(this.createRef(ref, v), v, indentation + 1);
 
             str += this.linebreak()
                 + this.indentation(indentation)
@@ -298,7 +335,7 @@ export class Serializer {
 
         map.forEach((v, k) => {
             if (ref.has(v)) {
-                throw new TypeError("Circular object reference detection");
+                this.getCircularReference();
             }
 
             Reflect.set(obj, (typeof k === "string") ? k : this.unknown(ref, k, indentation), v);
@@ -315,7 +352,7 @@ export class Serializer {
 
         set.forEach(value => {
             if (ref.has(value)) {
-                throw new TypeError("Circular object reference detection");
+                this.getCircularReference();
             }
 
             arr.push((typeof value === "string") ? value : this.unknown(ref, value, indentation));
@@ -328,36 +365,36 @@ export class Serializer {
             + Serializer.CLASS_INSTANCE_BRACES[1];
     }
 
-    protected unknown(ref: Set<unknown>, any: any, indentation: number): string {
-        if (any === null) {
+    protected unknown(ref: Set<unknown>, target: unknown, indentation: number): string {
+        if (target === null) {
             return this.null();
         }
-        else if (any instanceof Map) {
-            return this.map(ref, any, indentation);
+        else if (target instanceof Map) {
+            return this.map(ref, target, indentation);
         }
-        else if (any instanceof Set) {
-            return this.set(ref, any, indentation);
+        else if (target instanceof Set) {
+            return this.set(ref, target, indentation);
         }
 
-        switch (typeof any) {
+        switch (typeof target) {
             case "boolean":
-                return this.boolean(any);
+                return this.boolean(target);
             case "number":
-                return this.number(any);
+                return this.number(target);
             case "bigint":
-                return this.bigint(any);
+                return this.bigint(target);
             case "string":
-                return this.string(any);
+                return this.string(target);
             case "symbol":
-                return this.symbol(any);
+                return this.symbol(target);
             case "undefined":
                 return this.undefined();
             case "function":
-                return this.function(any);
+                return this.function(target);
             case "object":
-                return this.object(ref, any, indentation);
+                return this.object(ref, target, indentation);
             default:
-                throw new Error("NEVER HAPPENS");
+                throw new SerializationError("NEVER HAPPENS");
         }
     }
 
@@ -402,4 +439,6 @@ export class Serializer {
     private static readonly UNDEFINED: string = "undefined";
 
     private static readonly PROTOTYPE: string = "[[Prototype]]";
+
+    private static readonly CIRCULAR_REFERENCE_OBJECT: string = "{ <Circular Reference> }";
 }

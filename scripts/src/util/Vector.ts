@@ -1,4 +1,4 @@
-import { Block, Direction, Vector2, Vector3, VectorXZ } from "@minecraft/server";
+import { Direction, Vector2, Vector3, VectorXZ } from "@minecraft/server";
 
 function isValidNumber(x: unknown): x is number {
     return typeof x === "number" && !Number.isNaN(x);
