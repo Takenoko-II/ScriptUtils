@@ -35,7 +35,7 @@ export class Xorshift32 implements RandomNumberGenerator {
     public int(range: IntRange): number {
         const min = range.getMin();
         const max = range.getMax();
-        return this.next() % (max - min) + min;
+        return this.next() % (max - min + 1) + min;
     }
 
     public decimal(range: FiniteRange): number {
@@ -115,24 +115,16 @@ export class Xorshift128Plus implements RandomNumberGenerator {
 export class Random {
     public constructor(private readonly randomNumberGenerator: RandomNumberGenerator) {}
 
-    private int(range: IntRange): number {
-        return this.randomNumberGenerator.int(range);
-    }
-
-    private decimal(range: FiniteRange): number {
-        return this.randomNumberGenerator.decimal(range);
-    }
-
     public uuid(): string {
         const chars = 'xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx'.split('');
 
         for (let i = 0; i < chars.length; i++) {
             switch (chars[i]) {
                 case 'x':
-                    chars[i] = this.int(IntRange.minMax(0, 15)).toString(16);
+                    chars[i] = this.randomNumberGenerator.int(IntRange.minMax(0, 15)).toString(16);
                     break;
                 case 'y':
-                    chars[i] = this.int(IntRange.minMax(8, 11)).toString(16);
+                    chars[i] = this.randomNumberGenerator.int(IntRange.minMax(8, 11)).toString(16);
                     break;
             }
         }
@@ -141,7 +133,7 @@ export class Random {
     }
 
     public chance(chance: number): boolean {
-        return this.decimal(FiniteRange.minMax(0, 1)) < chance;
+        return this.randomNumberGenerator.decimal(FiniteRange.minMax(0, 1)) < chance;
     }
 
     public sign(): number {
@@ -149,30 +141,54 @@ export class Random {
     }
 
     public choice<T>(list: T[]): T {
-        return list[this.int(IntRange.minMax(0, list.length - 1))];
+        return list[this.randomNumberGenerator.int(IntRange.minMax(0, list.length - 1))];
+    }
+
+    public sample<T>(set: Set<T>, count: number): Set<T> {
+        return new Set(this.shuffledClone([...set]).slice(0, count));
+    }
+
+    public boxMuller(): number {
+        let a: number, b: number;
+
+        do {
+            a = this.randomNumberGenerator.decimal(FiniteRange.minMax(0, 1));
+        }
+        while (a === 0);
+
+        do {
+            b = this.randomNumberGenerator.decimal(FiniteRange.minMax(0, 1));
+        }
+        while (b === 1);
+
+        return Math.sqrt(-2 * Math.log(a)) * Math.sin(2 * Math.PI * b);
     }
 
     public rotation(): TripleAxisRotationBuilder {
         return new TripleAxisRotationBuilder(
-            this.decimal(FiniteRange.minMax(-180, 179)),
-            this.decimal(FiniteRange.minMax(-90, 90)),
-            this.decimal(FiniteRange.minMax(-180, 179))
+            this.randomNumberGenerator.decimal(FiniteRange.minMax(-180, 179)),
+            this.randomNumberGenerator.decimal(FiniteRange.minMax(-90, 90)),
+            this.randomNumberGenerator.decimal(FiniteRange.minMax(-180, 179))
         );
     }
 
     public weightedChoice<T extends string>(map: Record<T, number>): T {
-        if (!(Object.keys(map).every(key => Number.isSafeInteger(map[key as keyof Record<T, number>]) && map[key as keyof Record<T, number>] > 0))) {
-            throw new TypeError("weightは0より大きい安全な整数である必要があります");
+        let sum: number = 0;
+        for (const uncasted of Object.values(map)) {
+            const val = uncasted as number;
+
+            if (!(Number.isSafeInteger(val) && val > 0)) {
+                throw new TypeError("重みとなる値は安全な範囲の正の整数である必要があります");
+            }
+
+            sum += val;
         }
 
-        const sum: number = Object.keys(map).map(key => map[key as keyof Record<T, number>]).reduce((a, b) => a + b);
-        const random = this.int(IntRange.minMax(1, sum));
+        const random = this.randomNumberGenerator.int(IntRange.minMax(1, sum));
 
         let totalWeight = 0;
-        for (const key of Object.keys(map)) {
-            const weight: number = map[key as keyof Record<T, number>];
-
-            totalWeight += weight;
+        for (const [key, weight] of Object.entries(map)) {
+            totalWeight += weight as number;
             if (totalWeight >= random) return key as T;
         }
 
@@ -186,7 +202,7 @@ export class Random {
 
         for (let i = clone.length - 1; i >= 0; i--) {
             const current = clone[i];
-            const random = this.int(IntRange.minMax(0, i));
+            const random = this.randomNumberGenerator.int(IntRange.minMax(0, i));
 
             clone[i] = clone[random];
             clone[random] = current;
@@ -204,9 +220,5 @@ export class Random {
         const low: number = Math.floor(Math.random() * (2 ** 32));
 
         return (BigInt(high) << 32n) | BigInt(low);
-    }
-
-    public static byRandomXors32(): Random {
-        return new this(Xorshift32.random());
     }
 }

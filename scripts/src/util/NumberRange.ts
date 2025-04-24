@@ -171,9 +171,9 @@ export class IntRange extends FiniteRange {
         return new IntRange(super.parse(input, allowSign, true));
     }
 
-    public static readonly UINT32_MAX_RANGE: IntRange = IntRange.minMax(0, 2 ** 32 -1);
+    public static readonly UINT32_MAX_RANGE: IntRange = IntRange.minMax(0, 2 ** 32 - 1);
 
-    public static readonly INT32_MAX_RANGE: IntRange = IntRange.minMax(-(2 ** 31), 2 ** 31 -1);
+    public static readonly INT32_MAX_RANGE: IntRange = IntRange.minMax(-(2 ** 31), 2 ** 31 - 1);
 }
 
 export class BigIntRange implements IRange<bigint> {
