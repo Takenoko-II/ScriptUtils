@@ -2,16 +2,21 @@
     "include": ["scripts/src/"],
     "exclude": [],
     "compilerOptions": {
-      "allowJs": true,
-      "checkJs": true,
-      "module": "ES2022",
-      "target": "es2022",
-      "moduleResolution": "node",
-      "esModuleInterop": true,
-      "strictNullChecks": true,
-      "strict": true,
-      "noImplicitOverride": true,
-      "rootDir": "scripts/src",
-      "outDir": "scripts/dest"
+        "allowJs": true,
+        "checkJs": true,
+        "module": "ES2022",
+        "target": "es2022",
+        "moduleResolution": "node",
+        "esModuleInterop": true,
+        "strict": true,
+        "noImplicitOverride": true,
+        "exactOptionalPropertyTypes": true,
+        "allowUnusedLabels": false,
+        "allowUnreachableCode": false,
+        "noImplicitReturns": true,
+        "noUnusedParameters": true,
+        "noUnusedLocals": true,
+        "rootDir": "scripts/src",
+        "outDir": "scripts/dest"
     }
 }

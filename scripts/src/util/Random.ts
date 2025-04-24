@@ -1,4 +1,5 @@
 import { FiniteRange, IntRange, BigIntRange } from "./NumberRange.js";
+import { TripleAxisRotationBuilder } from "./Vector.js";
 
 export interface RandomNumberGenerator {
     int(range: IntRange): number;
@@ -20,7 +21,7 @@ export class Xorshift32 implements RandomNumberGenerator {
         this.w = seed;
     }
 
-    public rand(): number {
+    public next(): number {
         let t = this.x ^ (this.x << 11);
 
         this.x = this.y;
@@ -34,13 +35,17 @@ export class Xorshift32 implements RandomNumberGenerator {
     public int(range: IntRange): number {
         const min = range.getMin();
         const max = range.getMax();
-        return this.rand() % (max - min) + min;
+        return this.next() % (max - min) + min;
     }
 
     public decimal(range: FiniteRange): number {
         const min = range.getMin();
         const max = range.getMax();
-        return (this.rand() / IntRange.UINT32_MAX_RANGE.getMax()) * (max - min) + min;
+        return (this.next() / IntRange.UINT32_MAX_RANGE.getMax()) * (max - min) + min;
+    }
+
+    public static random(): Xorshift32 {
+        return new this(Random.uInt32());
     }
 }
 
@@ -58,7 +63,7 @@ export class Xorshift128Plus implements RandomNumberGenerator {
         this.s[1] = seed1 & mask;
 
         for (let i = 0; i < 4; i++) {
-            this.rand(); // 始めの方はシード値が小さいと結果が偏るため
+            this.next(); // 始めの方はシード値が小さいと結果が偏るため
         }
     }
 
@@ -66,7 +71,7 @@ export class Xorshift128Plus implements RandomNumberGenerator {
         return value & ((1n << 64n) - 1n);
     }
 
-    public rand(): bigint {
+    public next(): bigint {
         let s1: bigint = this.s[0];
         let s0: bigint = this.s[1];
 
@@ -83,7 +88,7 @@ export class Xorshift128Plus implements RandomNumberGenerator {
     }
 
     public bigint(range: BigIntRange): bigint {
-        let value: bigint = this.rand();
+        let value: bigint = this.next();
 
         return value % (range.getMax() - range.getMin() + 1n) + range.getMin();
     }
@@ -100,6 +105,10 @@ export class Xorshift128Plus implements RandomNumberGenerator {
 
         const ratio: number = Number(this.bigint(intRange) * scale / intRange.getMax()) / Number(scale);
         return ratio * (range.getMax() - range.getMin()) + range.getMin();
+    }
+
+    public static random(): Xorshift128Plus {
+        return new this(Random.uBigInt64(), Random.uBigInt64());
     }
 }
 
@@ -143,20 +152,34 @@ export class Random {
         return list[this.int(IntRange.minMax(0, list.length - 1))];
     }
 
-    public choiceIndexbyWeight(weights: number[]): number {
-        const sum = weights.reduce((a, b) => a + b);
+    public rotation(): TripleAxisRotationBuilder {
+        return new TripleAxisRotationBuilder(
+            this.decimal(FiniteRange.minMax(-180, 179)),
+            this.decimal(FiniteRange.minMax(-90, 90)),
+            this.decimal(FiniteRange.minMax(-180, 179))
+        );
+    }
+
+    public weightedChoice<T extends string>(map: Record<T, number>): T {
+        if (!(Object.keys(map).every(key => Number.isSafeInteger(map[key as keyof Record<T, number>]) && map[key as keyof Record<T, number>] > 0))) {
+            throw new TypeError("weightは0より大きい安全な整数である必要があります");
+        }
+
+        const sum: number = Object.keys(map).map(key => map[key as keyof Record<T, number>]).reduce((a, b) => a + b);
         const random = this.int(IntRange.minMax(1, sum));
-    
+
         let totalWeight = 0;
-        for (const [index, weight] of weights.entries()) {
+        for (const key of Object.keys(map)) {
+            const weight: number = map[key as keyof Record<T, number>];
+
             totalWeight += weight;
-            if (totalWeight >= random) return index;
+            if (totalWeight >= random) return key as T;
         }
 
         throw new TypeError("NEVER HAPPENS");
     }
 
-    public shuffle<T>(list: T[]): T[] {
+    public shuffledClone<T>(list: T[]): T[] {
         const clone = [...list];
 
         if (list.length <= 1) return clone;
@@ -183,11 +206,7 @@ export class Random {
         return (BigInt(high) << 32n) | BigInt(low);
     }
 
-    public static xorshift32(): Xorshift32 {
-        return new Xorshift32(Random.uInt32());
-    }
-
-    public static xorshift128Plus(): Xorshift128Plus {
-        return new Xorshift128Plus(Random.uBigInt64(), Random.uBigInt64());
+    public static byRandomXors32(): Random {
+        return new this(Xorshift32.random());
     }
 }

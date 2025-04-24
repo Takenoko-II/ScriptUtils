@@ -5,9 +5,11 @@ interface SerializerProperties {
 
     linebreakable: boolean;
 
-    circularReferenceStringify: boolean;
+    interpretCircularReference: boolean;
 
     readonly hiddenPrototypes: Set<object>;
+
+    readonly alwaysHiddenPrototypes: ReadonlySet<object>;
 }
 
 export class SerializationError extends Error {}
@@ -16,8 +18,16 @@ export class Serializer {
     private readonly properties: SerializerProperties = {
         indentationSpaceCount: 4,
         linebreakable: true,
-        circularReferenceStringify: true,
-        hiddenPrototypes: new Set()
+        interpretCircularReference: true,
+        hiddenPrototypes: new Set(),
+        alwaysHiddenPrototypes: new Set([
+            Boolean.prototype,
+            Number.prototype,
+            BigInt.prototype,
+            String.prototype,
+            Symbol.prototype,
+            Function.prototype
+        ])
     };
 
     public get indentationSpaceCount(): number {
@@ -40,17 +50,20 @@ export class Serializer {
         this.properties.linebreakable = value;
     }
 
-    public get circularReferenceStringify(): boolean {
-        return this.properties.circularReferenceStringify;
+    public get interpretCircularReference(): boolean {
+        return this.properties.interpretCircularReference;
     }
 
-    public set circularReferenceStringify(value: boolean) {
-        this.properties.circularReferenceStringify = value;
+    public set interpretCircularReference(value: boolean) {
+        this.properties.interpretCircularReference = value;
     }
 
     public hidePrototypeOf(clazz: Function) {
         if (clazz.prototype === undefined) {
-            throw new TypeError("It does not have prototype");
+            throw new TypeError("Passed class object does not have prototype");
+        }
+        else if (this.properties.alwaysHiddenPrototypes.has(clazz.prototype)) {
+            throw new TypeError("Passed class object is always hidden");
         }
 
         if (!this.properties.hiddenPrototypes.has(clazz.prototype)) {
@@ -62,24 +75,31 @@ export class Serializer {
         if (clazz.prototype === undefined) {
             throw new TypeError("It does not have prototype");
         }
+        else if (this.properties.alwaysHiddenPrototypes.has(clazz.prototype)) {
+            throw new TypeError("Passed class object is always hidden");
+        }
 
         if (this.properties.hiddenPrototypes.has(clazz.prototype)) {
             this.properties.hiddenPrototypes.delete(clazz);
         }
     }
 
+    public isHidden(clazz: Function): boolean {
+        return this.properties.hiddenPrototypes.has(clazz) || this.properties.alwaysHiddenPrototypes.has(clazz);
+    }
+
     public serialize(value: unknown): string {
         return this.unknown(new Set(), value, 1);
     }
 
-    protected newReference(ref: Set<unknown>, obj: unknown): Set<unknown> {
+    private newReference(ref: Set<unknown>, obj: unknown): Set<unknown> {
         const cSet: Set<unknown> = new Set(ref);
         cSet.add(obj);
         return cSet;
     }
 
-    protected getCircularReference(): string {
-        if (this.properties.circularReferenceStringify) {
+    private getCircularReference(): string {
+        if (this.properties.interpretCircularReference) {
             return Serializer.CIRCULAR_REFERENCE_OBJECT;
         }
         else {

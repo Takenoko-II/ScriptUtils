@@ -4,7 +4,7 @@ function isValidNumber(x: unknown): x is number {
     return typeof x === "number" && !Number.isNaN(x);
 }
 
-export interface ForzenVector3 extends Vector3 {
+export interface ReadonlyVector3 extends Vector3 {
     readonly x: number;
 
     readonly y: number;
@@ -12,13 +12,13 @@ export interface ForzenVector3 extends Vector3 {
     readonly z: number;
 }
 
-export interface FrozenVector2 extends Vector2 {
+export interface ReadonlyVector2 extends Vector2 {
     readonly x: number;
 
     readonly y: number;
 }
 
-export interface FrozenVectorXZ extends VectorXZ {
+export interface ReadonlyVectorXZ extends VectorXZ {
     readonly x: number;
 
     readonly z: number;
@@ -399,11 +399,11 @@ export class Vector3Builder implements Vector3 {
         return this.equals(Vector3Builder.zero());
     }
 
-    public freeze(): ForzenVector3 {
+    public freeze(): ReadonlyVector3 {
         return Object.freeze({ x: this.x, y: this.y, z: this.z });
     }
 
-    public freezeAsXZ(): FrozenVectorXZ {
+    public freezeAsXZ(): ReadonlyVectorXZ {
         return Object.freeze({ x: this.x, z: this.z });
     }
 
@@ -718,7 +718,7 @@ export class TripleAxisRotationBuilder implements Vector2 {
         return this.equals(TripleAxisRotationBuilder.zero());
     }
 
-    public freeze(): FrozenVector2 {
+    public freeze(): ReadonlyVector2 {
         return Object.freeze({ x: this.x, y: this.y });
     }
 
@@ -746,7 +746,9 @@ export class TripleAxisRotationBuilder implements Vector2 {
         return new this(vector2.y, vector2.x, 0);
     }
 
-    public static ofAxes(x: Vector3Builder, y: Vector3Builder, z: Vector3Builder) {
+    public static ofAxes(x: Vector3Builder, y: Vector3Builder) {
+        const z = x.cross(y);
+
         return new this(
             Math.atan2(-z.x, z.z) * 180 / Math.PI,
             Math.asin(-z.y) * 180 / Math.PI,
@@ -785,40 +787,35 @@ class LocalAxisProvider {
     public back(): TripleAxisRotationBuilder {
         return TripleAxisRotationBuilder.ofAxes(
             this.getX().invert(),
-            this.getY(),
-            this.getZ().invert()
+            this.getY()
         );
     }
 
     public left(): TripleAxisRotationBuilder {
         return TripleAxisRotationBuilder.ofAxes(
             this.getZ().invert(),
-            this.getY(),
-            this.getX()
+            this.getY()
         );
     }
 
     public right(): TripleAxisRotationBuilder {
         return TripleAxisRotationBuilder.ofAxes(
             this.getZ(),
-            this.getY(),
-            this.getX().invert()
+            this.getY()
         );
     }
 
     public up(): TripleAxisRotationBuilder {
         return TripleAxisRotationBuilder.ofAxes(
             this.getX(),
-            this.getZ().invert(),
-            this.getY()
+            this.getZ().invert()
         );
     }
 
     public down(): TripleAxisRotationBuilder {
         return TripleAxisRotationBuilder.ofAxes(
             this.getX(),
-            this.getZ(),
-            this.getY().invert()
+            this.getZ()
         );
     }
 }
