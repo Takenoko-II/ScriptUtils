@@ -1,10 +1,17 @@
+import { Vector2, Vector3 } from "@minecraft/server";
 import { FiniteRange, IntRange, BigIntRange } from "./NumberRange.js";
-import { TripleAxisRotationBuilder } from "./Vector.js";
+import { TripleAxisRotationBuilder, Vector3Builder } from "./Vector.js";
 
 export interface RandomNumberGenerator {
     int(range: IntRange): number;
 
     decimal(range: FiniteRange): number;
+}
+
+export interface NoiseGenerationOptions {
+    frequency: number;
+
+    amplitude: number;
 }
 
 export class Xorshift32 implements RandomNumberGenerator {
@@ -112,8 +119,120 @@ export class Xorshift128Plus implements RandomNumberGenerator {
     }
 }
 
+class PerlinNoise {
+    private readonly permutation: number[];
+
+    private readonly offset: Vector3;
+
+    public constructor(generator: RandomNumberGenerator) {
+        this.offset = Vector3Builder.zero().operate(() => (generator.int(IntRange.minMax(0, 2 ** 31 - 1)) / (2 ** 31 - 1)) * 256);
+
+        this.permutation = Array(256).fill(0).map(() => generator.int(IntRange.minMax(0, 255)));
+
+        for (let i = 0; i < 256; i++) {
+            let index: number = generator.int(IntRange.minMax(i, 255));
+            let old: number = this.permutation[i];
+            this.permutation[i] = this.permutation[index];
+            this.permutation[index] = old;
+            this.permutation[i + 256] = this.permutation[i];
+        }
+    }
+
+    public noise3(v: Vector3, options: NoiseGenerationOptions): number {
+        v.x *= options.frequency;
+        v.y *= options.frequency;
+        v.z *= options.frequency;
+
+        v.x += this.offset.x;
+        v.y += this.offset.y;
+        v.z += this.offset.z;
+
+        const floorX: number = Math.floor(v.x);
+        const floorY: number = Math.floor(v.y);
+        const floorZ: number = Math.floor(v.z);
+
+        const X = floorX & 255;
+        const Y = floorY & 255;
+        const Z = floorZ & 255;
+
+        v.x -= floorX;
+        v.y -= floorY;
+        v.z -= floorZ;
+
+        const fadeX = PerlinNoise.fade(v.x);
+        const fadeY = PerlinNoise.fade(v.y);
+        const fadeZ = PerlinNoise.fade(v.z);
+
+        const A = this.permutation[X] + Y;
+        const AA = this.permutation[A] + Z;
+        const AB = this.permutation[A + 1] + Z;
+        const B = this.permutation[X + 1] + Y;
+        const BA = this.permutation[B] + Z;
+        const BB = this.permutation[B + 1] + Z;
+
+        return options.amplitude * PerlinNoise.lerp({
+            x: fadeZ,
+            y: PerlinNoise.lerp({
+                x: fadeY,
+                y: PerlinNoise.lerp({
+                    x: fadeX,
+                    y: PerlinNoise.gradient(this.permutation[AA], v),
+                    z: PerlinNoise.gradient(this.permutation[BA],  { x: v.x -1, y: v.y, z: v.z })
+                }),
+                z: PerlinNoise.lerp({
+                    x: fadeX,
+                    y: PerlinNoise.gradient(this.permutation[AB], { x: v.x, y: v.y - 1.0, z: v.z }),
+                    z: PerlinNoise.gradient(this.permutation[BB], { x: v.x - 1.0, y: v.y - 1.0, z: v.z })
+                })
+            }),
+            z: PerlinNoise.lerp({
+                x: fadeY,
+                y: PerlinNoise.lerp({
+                    x: fadeX,
+                    y: PerlinNoise.gradient(this.permutation[AA + 1], { x: v.x, y: v.y, z: v.z - 1.0 }),
+                    z: PerlinNoise.gradient(this.permutation[BA + 1], { x: v.x - 1.0, y: v.y, z: v.z - 1.0 })
+                }),
+                z: PerlinNoise.lerp({
+                    x: fadeX,
+                    y: PerlinNoise.gradient(this.permutation[AB + 1], { x: v.x, y: v.y - 1.0, z: v.z - 1.0 }),
+                    z: PerlinNoise.gradient(this.permutation[BB + 1], { x: v.x - 1.0, y: v.y - 1.0, z: v.z - 1.0 })
+                })
+            })
+        });
+    }
+
+    public noise2(v: Vector2, options: NoiseGenerationOptions): number {
+        return this.noise3({ x: v.x, y: v.y, z: 0 }, options);
+    }
+
+    public noise1(v: number, options: NoiseGenerationOptions): number {
+        return this.noise2({ x: v, y: 0 }, options);
+    }
+
+    private static fade(x: number): number {
+        return (6 * x ** 5) - (15 * x ** 4) + (10 * x ** 3);
+    }
+
+    private static lerp(v: Vector3): number {
+        return v.y + v.x * (v.z - v.y);
+    }
+
+    private static gradient(hash: number, distanceVector: Vector3): number {
+        hash &= 15;
+
+        const u = hash < 8 ? distanceVector.x : distanceVector.y;
+        const v = hash < 4 ? distanceVector.y : (hash !== 12 && hash !== 14 ? distanceVector.z : distanceVector.x);
+
+        return ((hash & 1) === 0 ? u : -u) + ((hash & 2) === 0 ? v : -v);
+    }
+}
+
 export class Random {
-    public constructor(private readonly randomNumberGenerator: RandomNumberGenerator) {}
+    private readonly noiseGenerator: PerlinNoise;
+
+    public constructor(private readonly randomNumberGenerator: RandomNumberGenerator) {
+        this.noiseGenerator = new PerlinNoise(randomNumberGenerator);
+    }
 
     public uuid(): string {
         const chars = 'xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx'.split('');
@@ -136,7 +255,7 @@ export class Random {
         return this.randomNumberGenerator.decimal(FiniteRange.minMax(0, 1)) < chance;
     }
 
-    public sign(): number {
+    public sign(): 1 | -1 {
         return this.chance(0.5) ? 1 : -1;
     }
 
@@ -145,7 +264,14 @@ export class Random {
     }
 
     public sample<T>(set: Set<T>, count: number): Set<T> {
-        return new Set(this.shuffledClone([...set]).slice(0, count));
+        if (count < 0 || count > set.size) {
+            throw new TypeError();
+        }
+
+        return new Set(
+            this.shuffledClone([...set])
+                .slice(0, count)
+        );
     }
 
     public boxMuller(): number {
@@ -166,9 +292,9 @@ export class Random {
 
     public rotation(): TripleAxisRotationBuilder {
         return new TripleAxisRotationBuilder(
-            this.randomNumberGenerator.decimal(FiniteRange.minMax(-180, 179)),
+            this.randomNumberGenerator.decimal(FiniteRange.minMax(-180, 180)),
             this.randomNumberGenerator.decimal(FiniteRange.minMax(-90, 90)),
-            this.randomNumberGenerator.decimal(FiniteRange.minMax(-180, 179))
+            this.randomNumberGenerator.decimal(FiniteRange.minMax(-180, 180))
         );
     }
 
@@ -209,6 +335,18 @@ export class Random {
         }
 
         return clone;
+    }
+
+    public noise3(v: Vector3, options: NoiseGenerationOptions): number {
+        return this.noiseGenerator.noise3(v, options);
+    }
+
+    public noise2(v: Vector2, options: NoiseGenerationOptions): number {
+        return this.noiseGenerator.noise2(v, options);
+    }
+
+    public noise1(v: number, options: NoiseGenerationOptions): number {
+        return this.noiseGenerator.noise1(v, options);
     }
 
     public static uInt32(): number {
