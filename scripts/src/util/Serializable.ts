@@ -438,7 +438,7 @@ export class Serializer {
 
     private static readonly EMPTY: string = "";
 
-    private static readonly CODE: string = "{...}";
+    private static readonly CODE: string = "{ ... }";
 
     private static readonly UNQUOTED_KEY_PATTERN: () => RegExp = () => /^[0-9]|[1-9][0-9]*|#?[a-zA-Z][a-zA-Z0-9_]*|[a-zA-Z_][a-zA-Z0-9_]*$/g;
 

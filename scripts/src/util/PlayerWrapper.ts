@@ -1,5 +1,5 @@
 import { Container, ContainerSlot, Entity, EntityComponentTypes, EntityEquippableComponent, EquipmentSlot, ItemStack, Player, Vector3 } from "@minecraft/server";
-import { TripleAxisRotationBuilder, Vector3Builder } from "./Vector";
+import { DualAxisRotationBuilder, Vector3Builder } from "./Vector";
 
 export class PlayerWrapper {
     private readonly __player__: Player;
@@ -102,8 +102,8 @@ export class PlayerWrapper {
         return Vector3Builder.from(this.__player__.location);
     }
 
-    public getRotation(): TripleAxisRotationBuilder {
-        return TripleAxisRotationBuilder.from(this.__player__.getRotation());
+    public getRotation(): DualAxisRotationBuilder {
+        return DualAxisRotationBuilder.from(this.__player__.getRotation());
     }
 
     public getEyeLocation(): Vector3Builder {
@@ -116,7 +116,7 @@ export class PlayerWrapper {
 
     public setVelocity(velocity: Vector3): void {
         const vector = Vector3Builder.from(velocity);
-        this.__player__.applyKnockback(vector.length(2.5), vector.y)
+        this.__player__.applyKnockback(vector.length(2.5).freezeAsXZ(), vector.y)
     }
 
     private static readonly __wrapperMap__: Map<Player, PlayerWrapper> = new Map();

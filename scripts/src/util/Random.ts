@@ -1,6 +1,6 @@
 import { Vector2, Vector3 } from "@minecraft/server";
 import { FiniteRange, IntRange, BigIntRange } from "./NumberRange.js";
-import { TripleAxisRotationBuilder, Vector3Builder } from "./Vector.js";
+import { DualAxisRotationBuilder, TripleAxisRotationBuilder, Vector3Builder } from "./Vector.js";
 
 export interface RandomNumberGenerator {
     int(range: IntRange): number;
@@ -259,7 +259,7 @@ export class Random {
         return this.chance(0.5) ? 1 : -1;
     }
 
-    public choice<T>(list: T[]): T {
+    public choice<const T>(list: T[]): T {
         return list[this.randomNumberGenerator.int(IntRange.minMax(0, list.length - 1))];
     }
 
@@ -290,7 +290,14 @@ export class Random {
         return Math.sqrt(-2 * Math.log(a)) * Math.sin(2 * Math.PI * b);
     }
 
-    public rotation(): TripleAxisRotationBuilder {
+    public rotation2(): DualAxisRotationBuilder {
+        return new DualAxisRotationBuilder(
+            this.randomNumberGenerator.decimal(FiniteRange.minMax(-180, 180)),
+            this.randomNumberGenerator.decimal(FiniteRange.minMax(-90, 90))
+        );
+    }
+
+    public rotation3(): TripleAxisRotationBuilder {
         return new TripleAxisRotationBuilder(
             this.randomNumberGenerator.decimal(FiniteRange.minMax(-180, 180)),
             this.randomNumberGenerator.decimal(FiniteRange.minMax(-90, 90)),
