@@ -26,6 +26,7 @@ export class PlayerWrapper {
         const clone: ItemStack = itemStack.clone();
 
         let remainingAmount: number = itemStack.amount;
+        const maxAmount: number = itemStack.maxAmount;
 
         for (let i = 0; i < container.size; i++) {
             const slot: ContainerSlot = container.getSlot(i);
@@ -35,7 +36,7 @@ export class PlayerWrapper {
             if (!slot.hasItem()) continue;
 
             if (slot.isStackableWith(clone)) {
-                let addend = Math.min(slot.amount + remainingAmount, 64) - slot.amount;
+                let addend = Math.min(slot.amount + remainingAmount, maxAmount) - slot.amount;
                 remainingAmount -= addend;
                 slot.amount += addend;
             }
@@ -49,9 +50,9 @@ export class PlayerWrapper {
 
                 if (slot.hasItem()) continue;
 
-                clone.amount = Math.min(remainingAmount, 64);
+                clone.amount = Math.min(remainingAmount, maxAmount);
                 slot.setItem(clone);
-                remainingAmount -= 64;
+                remainingAmount -= maxAmount;
             }
         }
 
@@ -86,7 +87,7 @@ export class PlayerWrapper {
 
             const slot = equippableComponent.getEquipmentSlot(slotId);
             if (!slot.hasItem()) continue;
-            if (predicate(slot.getItem() as ItemStack)) return true;
+            if (predicate(slot.getItem()!)) return true;
         }
 
         const cursorItem: ItemStack | undefined = this.__player__.getComponent(EntityComponentTypes.CursorInventory)?.item;
@@ -119,15 +120,15 @@ export class PlayerWrapper {
         this.__player__.applyKnockback(vector.length(2.5).freezeAsXZ(), vector.y);
     }
 
-    private static readonly __wrapperMap__: Map<Player, PlayerWrapper> = new Map();
+    private static readonly __wrappers__: Map<Player, PlayerWrapper> = new Map();
 
     public static wrap(player: Player): PlayerWrapper {
-        if (this.__wrapperMap__.has(player)) {
-            return this.__wrapperMap__.get(player)!;
+        if (this.__wrappers__.has(player)) {
+            return this.__wrappers__.get(player)!;
         }
         else {
             const instance = new this(player);
-            this.__wrapperMap__.set(player, instance);
+            this.__wrappers__.set(player, instance);
             return instance;
         }
     }
