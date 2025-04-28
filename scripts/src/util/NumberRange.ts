@@ -50,12 +50,8 @@ export class Range implements IRange<number> {
         return new Range(value, value);
     }
 
-    public static minMax(min: number, max: number): Range {
-        if (max < min) {
-            throw new TypeError("max < min");
-        }
-
-        return new Range(min, max);
+    public static minMax(value1: number, value2: number): Range {
+        return new Range(value1, value2);
     }
 
     public static parse(input: string, allowSign: boolean, intOnly: boolean): Range {
@@ -107,8 +103,8 @@ export class FiniteRange extends Range {
         return new FiniteRange(new Range(Number.MIN_VALUE, max));
     }
 
-    public static override minMax(min: number, max: number): FiniteRange {
-        return new FiniteRange(super.minMax(min, max));
+    public static override minMax(value1: number, value2: number): FiniteRange {
+        return new FiniteRange(super.minMax(value1, value2));
     }
 
     public static override exactValue(value: number): FiniteRange {
@@ -159,8 +155,8 @@ export class IntRange extends FiniteRange {
         return new IntRange(super.minMax(Number.MIN_SAFE_INTEGER, max));
     }
 
-    public static override minMax(min: number, max: number): IntRange {
-        return new IntRange(super.minMax(min, max));
+    public static override minMax(value1: number, value2: number): IntRange {
+        return new IntRange(super.minMax(value1, value2));
     }
 
     public static override exactValue(value: number): IntRange {
@@ -228,12 +224,8 @@ export class BigIntRange implements IRange<bigint> {
         return new BigIntRange(value, value);
     }
 
-    public static minMax(min: bigint, max: bigint): BigIntRange {
-        if (max < min) {
-            throw new TypeError("max < min");
-        }
-
-        return new BigIntRange(min, max);
+    public static minMax(value1: bigint, value2: bigint): BigIntRange {
+        return new BigIntRange(value1, value2);
     }
 
     public static parse(input: string, allowSign: boolean): BigIntRange {

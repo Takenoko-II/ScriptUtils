@@ -116,14 +116,14 @@ export class PlayerWrapper {
 
     public setVelocity(velocity: Vector3): void {
         const vector = Vector3Builder.from(velocity);
-        this.__player__.applyKnockback(vector.length(2.5).freezeAsXZ(), vector.y)
+        this.__player__.applyKnockback(vector.length(2.5).freezeAsXZ(), vector.y);
     }
 
     private static readonly __wrapperMap__: Map<Player, PlayerWrapper> = new Map();
 
     public static wrap(player: Player): PlayerWrapper {
         if (this.__wrapperMap__.has(player)) {
-            return this.__wrapperMap__.get(player) as PlayerWrapper;
+            return this.__wrapperMap__.get(player)!;
         }
         else {
             const instance = new this(player);
