@@ -71,7 +71,7 @@ class RegistryLookup<O> {
             return this.__registry__.get(name)!;
         }
         else {
-            throw new RegistryError();
+            throw new RegistryError("存在しないキーです");
         }
     }
 

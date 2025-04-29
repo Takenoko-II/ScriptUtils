@@ -22,7 +22,7 @@ export class Xorshift32 implements RandomNumberGenerator {
 
     public constructor(seed: number) {
         if (!Number.isInteger(seed)) {
-            throw new TypeError();
+            throw new TypeError("シード値は整数である必要があります");
         }
 
         this.w = seed;
@@ -265,7 +265,7 @@ export class Random {
 
     public sample<T>(set: Set<T>, count: number): Set<T> {
         if (count < 0 || count > set.size) {
-            throw new TypeError();
+            throw new TypeError("countの値は0以上要素数以下である必要があります");
         }
 
         return new Set(

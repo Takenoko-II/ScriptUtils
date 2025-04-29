@@ -15,7 +15,7 @@ export class Range implements IRange<number> {
 
     protected constructor(value1: number, value2: number) {
         if (Number.isNaN(value1) || Number.isNaN(value2)) {
-            throw new TypeError();
+            throw new TypeError("NaNは範囲の端の値として使用できません");
         }
 
         this.min = Math.min(value1, value2);
@@ -119,7 +119,7 @@ export class FiniteRange extends Range {
 export class IntRange extends FiniteRange {
     protected constructor(range: FiniteRange) {
         if (!(Number.isSafeInteger(range.getMin()) && Number.isSafeInteger(range.getMax()))) {
-            throw new TypeError("整数ではありません");
+            throw new TypeError("コンストラクタに渡された値が有効な範囲の整数ではありません");
         }
 
         super(range);
@@ -127,7 +127,7 @@ export class IntRange extends FiniteRange {
 
     public override within(value: number): boolean {
         if (!Number.isSafeInteger(value)) {
-            throw new TypeError();
+            throw new TypeError("関数に渡された値が有効な範囲の整数ではありません");
         }
 
         return super.within(value);

@@ -117,7 +117,7 @@ export class PlayerWrapper {
 
     public setVelocity(velocity: Vector3): void {
         const vector = Vector3Builder.from(velocity);
-        this.__player__.applyKnockback(vector.length(2.5).freezeAsXZ(), vector.y);
+        this.__player__.applyKnockback(vector.length(2.5), vector.y);
     }
 
     private static readonly __wrappers__: Map<Player, PlayerWrapper> = new Map();
