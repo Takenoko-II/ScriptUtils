@@ -119,6 +119,24 @@ export class Xorshift128Plus implements RandomNumberGenerator {
     }
 }
 
+interface CubeRange {
+    readonly $000: number;
+
+    readonly $100: number;
+
+    readonly $010: number;
+
+    readonly $110: number;
+
+    readonly $001: number;
+
+    readonly $101: number;
+
+    readonly $011: number;
+
+    readonly $111: number;
+}
+
 class PerlinNoise {
     private readonly permutation: number[];
 
@@ -138,67 +156,42 @@ class PerlinNoise {
         }
     }
 
+    private getGridGradients(v: Vector3, AA: number, AB: number, BA: number, BB: number): CubeRange {
+        return {
+            $000: PerlinNoise.gradient(this.permutation[AA], v),
+            $100: PerlinNoise.gradient(this.permutation[BA], { x: v.x - 1, y: v.y, z: v.z }),
+            $010: PerlinNoise.gradient(this.permutation[AB], { x: v.x, y: v.y - 1, z: v.z }),
+            $110: PerlinNoise.gradient(this.permutation[BB], { x: v.x - 1, y: v.y - 1, z: v.z }),
+            $001: PerlinNoise.gradient(this.permutation[AA + 1], { x: v.x, y: v.y, z: v.z - 1 }),
+            $101: PerlinNoise.gradient(this.permutation[BA + 1], { x: v.x - 1, y: v.y, z: v.z - 1 }),
+            $011: PerlinNoise.gradient(this.permutation[AB + 1], { x: v.x, y: v.y - 1, z: v.z - 1 }),
+            $111: PerlinNoise.gradient(this.permutation[BB + 1], { x: v.x - 1, y: v.y - 1, z: v.z - 1 })
+        };
+    }
+
     public noise3(v: Vector3, options: NoiseGenerationOptions): number {
-        v.x *= options.frequency;
-        v.y *= options.frequency;
-        v.z *= options.frequency;
+        const vb = Vector3Builder.from(v)
+            .scale(options.frequency)
+            .add(this.offset);
 
-        v.x += this.offset.x;
-        v.y += this.offset.y;
-        v.z += this.offset.z;
+        const floored = vb.clone().operate(component => Math.floor(component));
 
-        const floorX: number = Math.floor(v.x);
-        const floorY: number = Math.floor(v.y);
-        const floorZ: number = Math.floor(v.z);
+        const indices = floored.clone().operate(component => component & 255);
 
-        const X = floorX & 255;
-        const Y = floorY & 255;
-        const Z = floorZ & 255;
+        vb.subtract(floored).operate(component => PerlinNoise.fade(component));
 
-        v.x -= floorX;
-        v.y -= floorY;
-        v.z -= floorZ;
+        const xy00 = this.permutation[indices.x] + indices.y;
+        const xy10 = this.permutation[indices.x + 1] + indices.y;
 
-        const fadeX = PerlinNoise.fade(v.x);
-        const fadeY = PerlinNoise.fade(v.y);
-        const fadeZ = PerlinNoise.fade(v.z);
+        const AA = this.permutation[xy00] + indices.z;
+        const AB = this.permutation[xy00 + 1] + indices.z;
+        const BA = this.permutation[xy10] + indices.z;
+        const BB = this.permutation[xy10 + 1] + indices.z;
 
-        const A = this.permutation[X] + Y;
-        const AA = this.permutation[A] + Z;
-        const AB = this.permutation[A + 1] + Z;
-        const B = this.permutation[X + 1] + Y;
-        const BA = this.permutation[B] + Z;
-        const BB = this.permutation[B + 1] + Z;
-
-        return options.amplitude * PerlinNoise.lerp({
-            x: fadeZ,
-            y: PerlinNoise.lerp({
-                x: fadeY,
-                y: PerlinNoise.lerp({
-                    x: fadeX,
-                    y: PerlinNoise.gradient(this.permutation[AA], v),
-                    z: PerlinNoise.gradient(this.permutation[BA],  { x: v.x -1, y: v.y, z: v.z })
-                }),
-                z: PerlinNoise.lerp({
-                    x: fadeX,
-                    y: PerlinNoise.gradient(this.permutation[AB], { x: v.x, y: v.y - 1.0, z: v.z }),
-                    z: PerlinNoise.gradient(this.permutation[BB], { x: v.x - 1.0, y: v.y - 1.0, z: v.z })
-                })
-            }),
-            z: PerlinNoise.lerp({
-                x: fadeY,
-                y: PerlinNoise.lerp({
-                    x: fadeX,
-                    y: PerlinNoise.gradient(this.permutation[AA + 1], { x: v.x, y: v.y, z: v.z - 1.0 }),
-                    z: PerlinNoise.gradient(this.permutation[BA + 1], { x: v.x - 1.0, y: v.y, z: v.z - 1.0 })
-                }),
-                z: PerlinNoise.lerp({
-                    x: fadeX,
-                    y: PerlinNoise.gradient(this.permutation[AB + 1], { x: v.x, y: v.y - 1.0, z: v.z - 1.0 }),
-                    z: PerlinNoise.gradient(this.permutation[BB + 1], { x: v.x - 1.0, y: v.y - 1.0, z: v.z - 1.0 })
-                })
-            })
-        });
+        return options.amplitude * PerlinNoise.trilinear(
+            vb,
+            this.getGridGradients(vb, AA, AB, BA, BB)
+        );
     }
 
     public noise2(v: Vector2, options: NoiseGenerationOptions): number {
@@ -213,8 +206,23 @@ class PerlinNoise {
         return (6 * x ** 5) - (15 * x ** 4) + (10 * x ** 3);
     }
 
-    private static lerp(v: Vector3): number {
-        return v.y + v.x * (v.z - v.y);
+    private static linear(t: number, a: number, b: number): number {
+        return a + t * (b - a);
+    }
+
+    private static trilinear(t: Vector3, range: CubeRange): number {
+        // X
+        const x00 = PerlinNoise.linear(t.x, range.$000, range.$100);
+        const x10 = PerlinNoise.linear(t.x, range.$010, range.$110);
+        const x01 = PerlinNoise.linear(t.x, range.$001, range.$101);
+        const x11 = PerlinNoise.linear(t.x, range.$011, range.$111);
+
+        // Y
+        const y0 = PerlinNoise.linear(t.y, x00, x10);
+        const y1 = PerlinNoise.linear(t.y, x01, x11);
+
+        // Z
+        return PerlinNoise.linear(t.z, y0, y1);
     }
 
     private static gradient(hash: number, distanceVector: Vector3): number {
@@ -228,10 +236,10 @@ class PerlinNoise {
 }
 
 export class Random {
-    private readonly noiseGenerator: PerlinNoise;
+    public readonly perlinNoiseGenerator: PerlinNoise;
 
     public constructor(private readonly randomNumberGenerator: RandomNumberGenerator) {
-        this.noiseGenerator = new PerlinNoise(randomNumberGenerator);
+        this.perlinNoiseGenerator = new PerlinNoise(randomNumberGenerator);
     }
 
     public uuid(): string {
@@ -342,18 +350,6 @@ export class Random {
         }
 
         return clone;
-    }
-
-    public noise3(v: Vector3, options: NoiseGenerationOptions): number {
-        return this.noiseGenerator.noise3(v, options);
-    }
-
-    public noise2(v: Vector2, options: NoiseGenerationOptions): number {
-        return this.noiseGenerator.noise2(v, options);
-    }
-
-    public noise1(v: number, options: NoiseGenerationOptions): number {
-        return this.noiseGenerator.noise1(v, options);
     }
 
     public static uInt32(): number {

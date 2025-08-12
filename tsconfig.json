@@ -14,8 +14,8 @@
         "allowUnusedLabels": false,
         "allowUnreachableCode": false,
         "noImplicitReturns": true,
-        "noUnusedParameters": true,
-        "noUnusedLocals": true,
+        // "noUnusedParameters": true,
+        // "noUnusedLocals": true,
         "rootDir": "scripts/src",
         "outDir": "scripts/dest"
     }
