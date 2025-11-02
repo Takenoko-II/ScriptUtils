@@ -6,8 +6,8 @@ export enum EventHandlerPriority {
     EARLIEST = 5,
     ERALIER = 4,
     NORMAL = 3,
-    LOWER = 2,
-    LOWEST = 1
+    LATER = 2,
+    LATEST = 1
 }
 
 export type EventHandlerRegistries<S extends EventSpecs> = { readonly [K in keyof S]: EventHandlerRegistry<S, K> };

@@ -1,4 +1,4 @@
-import { Container, ContainerSlot, Entity, EntityComponentTypes, EntityEquippableComponent, EquipmentSlot, ItemStack, Player, Vector3 } from "@minecraft/server";
+import { Container, ContainerSlot, Entity, EntityComponentTypes, EntityEquippableComponent, EquipmentSlot, GameMode, ItemStack, Player, Vector3 } from "@minecraft/server";
 import { DualAxisRotationBuilder, Vector3Builder } from "./Vector";
 
 export class PlayerWrapper {
@@ -56,7 +56,8 @@ export class PlayerWrapper {
             }
         }
 
-        if (remainingAmount > 0) {
+        const gameMode = this.__player__.getGameMode();
+        if (remainingAmount > 0 && gameMode === GameMode.Survival || gameMode === GameMode.Adventure) {
             clone.amount = remainingAmount;
             const entity: Entity = this.__player__.dimension.spawnItem(itemStack, this.__player__.getHeadLocation());
             entity.applyImpulse(Vector3Builder.from(this.__player__.getViewDirection()).scale(0.4));

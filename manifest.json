@@ -4,22 +4,22 @@
         "description": "",
         "name": "ScriptUtils",
         "uuid": "e67fc386-61bd-480d-b266-b96f24ea25fc",
-        "version": [0, 0, 0],
-        "min_engine_version": [1, 21, 44]
+        "version": [1, 0, 0],
+        "min_engine_version": [1, 21, 100]
     },
     "modules": [
         {
             "description": "",
             "type": "data",
             "uuid": "94afe38a-cd96-4f4e-b146-d20e29807043",
-            "version": [0, 0, 0]
+            "version": [1, 0, 0]
         },
         {
             "description": "",
             "type": "script",
-            "language": "JavaScript",
+            "language": "javascript",
             "uuid": "4aca5168-ccb3-4699-a958-231516adcb07",
-            "version": [0, 0, 0],
+            "version": [1, 0, 0],
             "entry": "scripts/dest/main.js"
         }
     ],
@@ -27,11 +27,11 @@
     "dependencies": [
         {
             "module_name": "@minecraft/server",
-            "version": "2.0.0-beta"
+            "version": "2.1.0"
         },
         {
             "module_name": "@minecraft/server-ui",
-            "version": "2.0.0-beta"
+            "version": "2.0.0"
         }
     ]
 }

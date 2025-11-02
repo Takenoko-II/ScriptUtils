@@ -147,6 +147,10 @@ export class IntRange extends FiniteRange {
         return BigIntRange.minMax(BigInt(this.getMin()), BigInt(this.getMax()));
     }
 
+    public ints(): Set<number> {
+        return new Set(Array(this.max - this.min).fill(undefined).map((_, i) => i + this.min));
+    }
+
     public static override minOnly(min: number): IntRange {
         return new IntRange(super.minMax(min, Number.MAX_SAFE_INTEGER));
     }
@@ -218,6 +222,10 @@ export class BigIntRange implements IRange<bigint> {
 
     public toPrecisionLost(): IntRange {
         return IntRange.minMax(Number(this.getMin()), Number(this.getMax()));
+    }
+
+    public ints(): Set<bigint> {
+        return new Set(Array(Number(this.max) - Number(this.min)).fill(undefined).map((_, i) => BigInt(i) + this.min));
     }
 
     public static exactValue(value: bigint): BigIntRange {

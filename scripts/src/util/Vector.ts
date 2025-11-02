@@ -371,6 +371,10 @@ export class Vector3Builder implements Vector3, IVectorBuilder<Vector3Builder> {
         return this.equals(Vector3Builder.zero());
     }
 
+    public toXZ(): VectorXZ {
+        return { x: this.x, z: this.z };
+    }
+
     public static isVector3(value: unknown): value is Vector3 {
         return sentry.objectOf({
             x: sentry.number.nonNaN(),
@@ -809,7 +813,7 @@ export class TripleAxisRotationBuilder implements IVectorBuilder<TripleAxisRotat
         );
     }
 
-    public getObjectCoordsSystem() {
+    public getObjectCoordsSystem(): InstanceType<typeof TripleAxisRotationBuilder.ObjectCoordsSystem> {
         return new TripleAxisRotationBuilder.ObjectCoordsSystem(this);
     }
 
