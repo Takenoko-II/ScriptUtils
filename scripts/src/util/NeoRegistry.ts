@@ -1,3 +1,4 @@
+import { MinecraftEntityTypes } from "../lib/@minecraft/vanilla-data/lib";
 import { sentry, TypeModel } from "../lib/TypeSentry";
 import { AbstractParser } from "./AbstractParser";
 
@@ -120,6 +121,10 @@ class RegistryKey<V> {
         return this.registry === other.registry && this.identifier.equals(other.identifier);
     }
 
+    public toString(): string {
+        return "RegistryKey<" + this.identifier + ">";
+    }
+
     public static of<V>(registry: Registry<V>, identifier: Identifier): RegistryKey<V> {
         return new RegistryKey(registry, identifier);
     }
@@ -138,11 +143,11 @@ class Registry<V> {
         this.key = RegistryKey.of(this, identifier);
     }
 
-    public getKey(): RegistryKey<V> {
+    public getRegistryKey(): RegistryKey<V> {
         return this.key;
     }
 
-    public has(identifier: Identifier): boolean {
+    public contains(identifier: Identifier): boolean {
         for (const entry of this.entries) {
             if (entry.identifier.equals(identifier)) {
                 return true;
@@ -153,7 +158,7 @@ class Registry<V> {
     }
 
     public register(identifier: Identifier, value: V): RegistryEntry<V> {
-        if (this.has(identifier)) {
+        if (this.contains(identifier)) {
             throw new RegistryError("使用済みのIDです: " + value);
         }
 
@@ -167,7 +172,7 @@ class Registry<V> {
     }
 
     public unregister(identifier: Identifier): RegistryEntry<V> {
-        if (!this.has(identifier)) {
+        if (!this.contains(identifier)) {
             throw new RegistryError("存在しないキーです: " + identifier);
         }
 
@@ -182,7 +187,7 @@ class Registry<V> {
     }
 
     public get(identifier: Identifier): V {
-        if (!this.has(identifier)) {
+        if (!this.contains(identifier)) {
             throw new RegistryError("存在しないキーです: " + identifier);
         }
 
@@ -196,51 +201,102 @@ class Registry<V> {
     }
 }
 
-interface RegistryRegistrar<V> {
-    readonly type: TypeModel<V>;
+class RegistryRegistrar<V> {
+    private static readonly CONSTRUCTION_PREVENTION_SYMBOL = Symbol(RegistryRegistrar.name);
 
-    register: (registry: Registry<V>) => void;
+    private readonly _: typeof RegistryRegistrar.CONSTRUCTION_PREVENTION_SYMBOL = RegistryRegistrar.CONSTRUCTION_PREVENTION_SYMBOL;
+
+    public constructor(public readonly type: TypeModel<V>, public readonly register?: (registry: Registry<V>) => void) {}
 }
 
 type RegistriesInitializer = {
-    readonly [key: string]: RegistryRegistrar<unknown>;
+    /**
+     * any要注意？
+     */
+    readonly [key: string]: RegistryRegistrar<any>;
 };
 
 type InitializerToRegistries<T extends Record<string, RegistryRegistrar<unknown>>> = {
     readonly [K in keyof T]: T[K] extends RegistryRegistrar<infer V> ? Registry<V> : never;
 };
 
-class Registries<const T extends RegistriesInitializer, S extends InitializerToRegistries<T>> {
-    private readonly registries: S;
+export class Registries<I extends RegistriesInitializer, R extends InitializerToRegistries<I> = InitializerToRegistries<I>> {
+    private readonly initializer: I;
 
-    public constructor(initializer: T) {
+    private readonly registries: R;
+
+    public constructor(initializer: I) {
+        this.initializer = initializer;
+
         const r: Record<string, Registry<unknown>> = {};
 
         for (const [identifier, registrar] of Object.entries(initializer)) {
             const registry = new Registry(Identifier.of(identifier), registrar.type);
+            if (registrar.register) registrar.register(registry);
             r[identifier] = registry;
         }
 
-        this.registries = r as S;
+        this.registries = r as R;
     }
 
-    public getRegistry<K extends keyof S>(identifier: K): S[K] {
-        return this.registries[identifier];
+    public get<K extends keyof R>(identifier: K): R[K];
+
+    public get<V>(key: RegistryKey<V>): Registry<V>;
+
+    public get<K extends keyof R, V>(identifierOrKey: K | RegistryKey<V>): R[K] | Registry<V> {
+        if (identifierOrKey instanceof RegistryKey) {
+            for (const __registry__ of Object.values(this.registries)) {
+                const registry = __registry__ as Registry<unknown>;
+                if (registry.getRegistryKey().equals(identifierOrKey)) {
+                    return registry as Registry<V>;
+                }
+            }
+
+            throw new RegistryError("対応するレジストリが見つかりませんでした");
+        }
+        else {
+            return this.registries[identifierOrKey];
+        }
+    }
+
+    public with<const K extends string, const Q extends RegistryRegistrar<any>>(identifier: K, registrar: Q): Registries<I & Record<K, Q>> {
+        return new Registries({ ...this.initializer, [identifier]: registrar });
+    }
+
+    public static empty(): Registries<{}> {
+        return new Registries({});
+    }
+
+    public static registryRegistrar<V>(type: TypeModel<V>, registrar?: (registry: Registry<V>) => void): RegistryRegistrar<V> {
+        return new RegistryRegistrar(type, registrar);
     }
 }
 
-const r = new Registries({
-    "a": {
-        type: sentry.number,
-        register(registry) {
-            
-        }
-    },
-    "b": {
-        type: sentry.string,
-        register() {
+/**
+ * Example
+ */
+enum ExampleSelectorSortOrder {
+    NEAREST,
+    RANDOM
+}
 
+const registries = new Registries({
+    "bes:selector_type": Registries.registryRegistrar(
+        sentry.structOf({
+            aliveOnly: sentry.boolean,
+            sortOrder: sentry.enumLikeOf(ExampleSelectorSortOrder),
+            traits: sentry.optionalOf(sentry.structOf({
+                typeSpecific: sentry.optionalOf(sentry.structOf({
+                    type: sentry.enumLikeOf(MinecraftEntityTypes),
+                    overridable: sentry.boolean
+                }))
+            }))
+        }),
+        registry => {
+            registry.register(Identifier.of("bes:@s"), {
+                aliveOnly: false,
+                sortOrder: ExampleSelectorSortOrder.NEAREST
+            })
         }
-    }
+    )
 });
-// ?
