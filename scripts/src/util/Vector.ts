@@ -323,7 +323,7 @@ export class Vector3Builder implements Vector3, IVectorBuilder<Vector3Builder> {
         return this.format("($x, $y, $z)", 1);
     }
 
-    public getRotation2d(): DualAxisRotationBuilder {
+    public getRotation2f(): DualAxisRotationBuilder {
         const normalized = this.clone().normalize();
 
         return new DualAxisRotationBuilder(
@@ -376,7 +376,7 @@ export class Vector3Builder implements Vector3, IVectorBuilder<Vector3Builder> {
     }
 
     public static isVector3(value: unknown): value is Vector3 {
-        return sentry.objectOf({
+        return sentry.structOf({
             x: sentry.number.nonNaN(),
             y: sentry.number.nonNaN(),
             z: sentry.number.nonNaN()
@@ -384,7 +384,7 @@ export class Vector3Builder implements Vector3, IVectorBuilder<Vector3Builder> {
     }
 
     public static isVectorXZ(value: unknown): value is VectorXZ {
-        return sentry.objectOf({
+        return sentry.structOf({
             x: sentry.number.nonNaN(),
             z: sentry.number.nonNaN()
         }).test(value);
@@ -430,7 +430,7 @@ export class Vector3Builder implements Vector3, IVectorBuilder<Vector3Builder> {
 
     public static from(arg0: Vector3 | VectorXZ | Direction, arg1: number = 0): Vector3Builder {
         if (this.isVector3(arg0)) {
-            return new this(arg0.x, arg0.y, arg0.z);
+            return new Vector3Builder(arg0.x, arg0.y, arg0.z);
         }
         else if (this.isVectorXZ(arg0)) {
             return new this(arg0.x, arg1, arg0.z);
@@ -624,7 +624,7 @@ export class DualAxisRotationBuilder implements Vector2, IVectorBuilder<DualAxis
     }
 
     public static isVector2(value: unknown): value is Vector2 {
-        return sentry.objectOf({
+        return sentry.structOf({
             x: sentry.number.nonNaN(),
             y: sentry.number.nonNaN()
         }).test(value);

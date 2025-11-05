@@ -18,6 +18,7 @@ class UtilEventEmitter extends AbstractEventEmitter<UtilSpecs> {
 export const events = new UtilEventEmitter();
 
 const lastButtonPressedTick = new Map<Player, number>();
+
 world.afterEvents.playerButtonInput.subscribe(event => {
     if (event.button !== InputButton.Sneak) return;
 
@@ -27,7 +28,7 @@ world.afterEvents.playerButtonInput.subscribe(event => {
             break;
         }
         case ButtonState.Released: {
-            if (system.currentTick - lastButtonPressedTick.get(event.player)!! <= 1) {
+            if (system.currentTick - lastButtonPressedTick.get(event.player)! <= 1) {
                 events.emit("sneakButtonReleaseQuickly", { player: event.player });
             }
             break;
@@ -35,6 +36,6 @@ world.afterEvents.playerButtonInput.subscribe(event => {
     }
 });
 
-events.on("sneakButtonReleaseQuickly", e => {
-     
+world.beforeEvents.playerLeave.subscribe(event => {
+    lastButtonPressedTick.delete(event.player);
 });

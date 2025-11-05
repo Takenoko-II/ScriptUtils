@@ -1,3 +1,4 @@
+import { MinecraftItemTypes } from "../lib/@minecraft/vanilla-data/lib/index";
 import { sentry, TypeModel } from "../lib/TypeSentry";
 import { AbstractParser } from "./AbstractParser";
 
@@ -107,10 +108,6 @@ class RegistryError extends Error {}
 
 class RegistryKey<V> {
     protected constructor(protected readonly registry: Registry<V>, protected readonly identifier: Identifier) {}
-
-    public getRegistry(): Registry<V> {
-        return this.registry;
-    }
 
     public getIdentifier() {
         return this.identifier;
@@ -281,11 +278,11 @@ export class Registries<I extends RegistriesInitializer, R extends InitializerTo
         }
     }
 
-    public with<const K extends string, const Q extends RegistryRegistrar<any>>(identifier: K, registrar: Q): Registries<I & Record<K, Q>> {
+    public withRegistry<const K extends string, const Q extends RegistryRegistrar<any>>(identifier: K, registrar: Q): Registries<I & Record<K, Q>> {
         return new Registries({ ...this.initializer, [identifier]: registrar });
     }
 
-    public static empty(): Registries<{}> {
+    public static newRegistries(): Registries<{}> {
         return new Registries({});
     }
 
