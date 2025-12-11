@@ -1,8 +1,7 @@
-import { MinecraftItemTypes } from "../lib/@minecraft/vanilla-data/lib/index";
-import { sentry, TypeModel } from "../lib/TypeSentry";
+import { TypeModel } from "../libs/TypeSentry";
 import { AbstractParser } from "./AbstractParser";
 
-class Identifier {
+export class Identifier {
     public constructor(public readonly namespace: string, public readonly value: string) {}
 
     public equals(other: Identifier): boolean {
@@ -225,7 +224,9 @@ class RegistryRegistrar<V> {
 
     private readonly _: typeof RegistryRegistrar.CONSTRUCTION_PREVENTION_SYMBOL = RegistryRegistrar.CONSTRUCTION_PREVENTION_SYMBOL;
 
-    public constructor(public readonly type: TypeModel<V>, public readonly register?: (registry: MutableRegistry<V>) => void) {}
+    public constructor(public readonly type: TypeModel<V>, public readonly register?: (registry: MutableRegistry<V>) => void) {
+        this._
+    }
 }
 
 type RegistriesInitializer = {
@@ -286,7 +287,7 @@ export class Registries<I extends RegistriesInitializer, R extends InitializerTo
         return new Registries({});
     }
 
-    public static registryRegistrar<V>(type: TypeModel<V>, registrar?: (registry: MutableRegistry<V>) => void): RegistryRegistrar<V> {
+    public static newRegistry<V>(type: TypeModel<V>, registrar?: (registry: MutableRegistry<V>) => void): RegistryRegistrar<V> {
         return new RegistryRegistrar(type, registrar);
     }
 }

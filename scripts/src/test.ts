@@ -1,6 +1,6 @@
 import { VectorXZ, world } from "@minecraft/server";
 import { Random, Xorshift32 } from "./util/Random";
-import { MinecraftDimensionTypes } from "./lib/@minecraft/vanilla-data/lib";
+import { MinecraftDimensionTypes } from "./libs/@minecraft/vanilla-data/lib";
 import { AbstractEventEmitter, EventHandlerRegistries, EventHandlerRegistry } from "./util/EventEmitter";
 
 const random = new Random(Xorshift32.random());

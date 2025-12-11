@@ -68,7 +68,7 @@ export class Range implements IRange<number> {
             return this.maxOnly(Number.parseFloat(input.slice(2)));
         }
         else if (new RegExp("^" + pattern + "\\.\\." + pattern + "$").test(input)) {
-            const [min, max] = input.split(/\.\./g).map(s => Number.parseFloat(s));
+            const [min, max] = input.split(/\.\./g).map(s => Number.parseFloat(s)) as [number, number];
             return this.minMax(min, max);
         }
         else throw new TypeError("無効な文字列です");
@@ -244,7 +244,7 @@ export class BigIntRange implements IRange<bigint> {
             return this.exactValue(BigInt(input));
         }
         else if (new RegExp("^" + pattern + "\\.\\." + pattern + "$").test(input)) {
-            const [min, max] = input.split(/\.\./g).map(s => BigInt(s));
+            const [min, max] = input.split(/\.\./g).map(s => BigInt(s)) as [bigint, bigint];
             return this.minMax(min, max);
         }
         else throw new TypeError("無効な文字列です");

@@ -1,7 +1,7 @@
 import { Vector2, Vector3 } from "@minecraft/server";
 import { FiniteRange, IntRange, BigIntRange } from "./NumberRange.js";
 import { DualAxisRotationBuilder, TripleAxisRotationBuilder, Vector3Builder } from "./Vector.js";
-import { sentry } from "../lib/TypeSentry.js";
+import { sentry } from "../libs/TypeSentry";
 
 export interface RandomNumberGenerator {
     int(range: IntRange): number;
@@ -150,23 +150,23 @@ class PerlinNoise {
 
         for (let i = 0; i < 256; i++) {
             let index: number = generator.int(IntRange.minMax(i, 255));
-            let old: number = this.permutation[i];
-            this.permutation[i] = this.permutation[index];
+            let old: number = this.permutation[i]!;
+            this.permutation[i] = this.permutation[index]!;
             this.permutation[index] = old;
-            this.permutation[i + 256] = this.permutation[i];
+            this.permutation[i + 256] = this.permutation[i]!;
         }
     }
 
     private getGridGradients(v: Vector3, AA: number, AB: number, BA: number, BB: number): CubeRange {
         return {
-            $000: PerlinNoise.gradient(this.permutation[AA], v),
-            $100: PerlinNoise.gradient(this.permutation[BA], { x: v.x - 1, y: v.y, z: v.z }),
-            $010: PerlinNoise.gradient(this.permutation[AB], { x: v.x, y: v.y - 1, z: v.z }),
-            $110: PerlinNoise.gradient(this.permutation[BB], { x: v.x - 1, y: v.y - 1, z: v.z }),
-            $001: PerlinNoise.gradient(this.permutation[AA + 1], { x: v.x, y: v.y, z: v.z - 1 }),
-            $101: PerlinNoise.gradient(this.permutation[BA + 1], { x: v.x - 1, y: v.y, z: v.z - 1 }),
-            $011: PerlinNoise.gradient(this.permutation[AB + 1], { x: v.x, y: v.y - 1, z: v.z - 1 }),
-            $111: PerlinNoise.gradient(this.permutation[BB + 1], { x: v.x - 1, y: v.y - 1, z: v.z - 1 })
+            $000: PerlinNoise.gradient(this.permutation[AA]!, v),
+            $100: PerlinNoise.gradient(this.permutation[BA]!, { x: v.x - 1, y: v.y, z: v.z }),
+            $010: PerlinNoise.gradient(this.permutation[AB]!, { x: v.x, y: v.y - 1, z: v.z }),
+            $110: PerlinNoise.gradient(this.permutation[BB]!, { x: v.x - 1, y: v.y - 1, z: v.z }),
+            $001: PerlinNoise.gradient(this.permutation[AA + 1]!, { x: v.x, y: v.y, z: v.z - 1 }),
+            $101: PerlinNoise.gradient(this.permutation[BA + 1]!, { x: v.x - 1, y: v.y, z: v.z - 1 }),
+            $011: PerlinNoise.gradient(this.permutation[AB + 1]!, { x: v.x, y: v.y - 1, z: v.z - 1 }),
+            $111: PerlinNoise.gradient(this.permutation[BB + 1]!, { x: v.x - 1, y: v.y - 1, z: v.z - 1 })
         };
     }
 
@@ -181,13 +181,13 @@ class PerlinNoise {
 
         vb.subtract(floored).operate(component => PerlinNoise.fade(component));
 
-        const xy00 = this.permutation[indices.x] + indices.y;
-        const xy10 = this.permutation[indices.x + 1] + indices.y;
+        const xy00 = this.permutation[indices.x]! + indices.y;
+        const xy10 = this.permutation[indices.x + 1]! + indices.y;
 
-        const AA = this.permutation[xy00] + indices.z;
-        const AB = this.permutation[xy00 + 1] + indices.z;
-        const BA = this.permutation[xy10] + indices.z;
-        const BB = this.permutation[xy10 + 1] + indices.z;
+        const AA = this.permutation[xy00]! + indices.z;
+        const AB = this.permutation[xy00 + 1]! + indices.z;
+        const BA = this.permutation[xy10]! + indices.z;
+        const BB = this.permutation[xy10 + 1]! + indices.z;
 
         return options.amplitude * PerlinNoise.trilinear(
             vb,
@@ -274,7 +274,7 @@ export class Random {
 
     public choice<const T>(iterable: T[] | Set<T>): T {
         if (Array.isArray(iterable)) {
-            return iterable[this.randomNumberGenerator.int(IntRange.minMax(0, iterable.length - 1))];
+            return iterable[this.randomNumberGenerator.int(IntRange.minMax(0, iterable.length - 1))]!;
         }
         else {
             return this.choice([...iterable]);
@@ -352,10 +352,10 @@ export class Random {
         if (list.length <= 1) return clone;
 
         for (let i = clone.length - 1; i >= 0; i--) {
-            const current = clone[i];
+            const current = clone[i]!;
             const random = this.randomNumberGenerator.int(IntRange.minMax(0, i));
 
-            clone[i] = clone[random];
+            clone[i] = clone[random]!;
             clone[random] = current;
         }
 

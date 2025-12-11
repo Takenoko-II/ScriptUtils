@@ -1,5 +1,5 @@
 import { Direction, Vector2, Vector3, VectorXZ } from "@minecraft/server";
-import { sentry } from "../lib/TypeSentry";
+import { sentry } from "../libs/TypeSentry";
 
 export interface ReadonlyVector3 extends Vector3 {
     readonly x: number;
@@ -338,7 +338,7 @@ export class Vector3Builder implements Vector3, IVectorBuilder<Vector3Builder> {
         const cos = Math.cos(angleInRad);
         const { x, y, z } = axis;
 
-        const matrix: number[][] = [
+        const matrix = [
             [
                 cos + x * x * (1 - cos),
                 x * y * (1 - cos) - z * sin,
@@ -354,7 +354,7 @@ export class Vector3Builder implements Vector3, IVectorBuilder<Vector3Builder> {
                 z * y * (1 - cos) + x * sin,
                 cos + z * z * (1 - cos)
             ]
-        ];
+        ] as const;
 
         const a: number = matrix[0][0] * this.x + matrix[0][1] * this.y + matrix[0][2] * this.z;
         const b: number = matrix[1][0] * this.x + matrix[1][1] * this.y + matrix[1][2] * this.z;

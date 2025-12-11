@@ -1200,9 +1200,3 @@ export class TypeSentry {
 export const sentry: TypeSentry = (class extends TypeSentry {
     public static readonly INSTANCE: TypeSentry = new this(SYMBOL_FOR_PRIVATE_CONSTRUCTOR);
 }).INSTANCE;
-
-class A {
-    private constructor() {
-
-    }
-}

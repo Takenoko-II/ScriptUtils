@@ -1,4 +1,4 @@
-import { IntRange } from "./NumberRange.js";
+import { IntRange } from "./NumberRange";
 
 interface SerializerProperties {
     indentationSpaceCount: number;
@@ -264,7 +264,7 @@ export class Serializer {
         const toAdd: Set<unknown> = new Set();
 
         for (let i = 0; i < keys.length; i++) {
-            const key: string = keys[i];
+            const key: string = keys[i]!;
 
             const v = Reflect.get(object, key);
 

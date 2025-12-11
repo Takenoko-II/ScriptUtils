@@ -6,16 +6,16 @@
 import { NumberRange } from "@minecraft/common";
 import { Player, RawMessage, system } from "@minecraft/server";
 import { ActionFormData, ModalFormData, MessageFormData, FormCancelationReason } from "@minecraft/server-ui";
-import { sentry } from "./TypeSentry";
+import { sentry, TypeModel } from "./TypeSentry";
 
-const numberRangeType = sentry.objectOf({
-    min: sentry.number,
-    max: sentry.number
+const numberRangeModel: TypeModel<NumberRange> = sentry.structOf({
+    min: sentry.number.nonNaN(),
+    max: sentry.number.nonNaN()
 });
 
-const dropdownOptionType = sentry.objectOf({
+const dropdownOptionModel: TypeModel<DropdownOption> = sentry.structOf({
     id: sentry.string,
-    text: sentry.unionOf(sentry.string, sentry.objectOf({}))
+    text: sentry.unionOf(sentry.string, sentry.structOf({}))
 });
 
 /**
@@ -56,13 +56,13 @@ export class ServerFormElementPredicates {
      * @returns `value`が`ActionButton`であれば真
      */
     public static isActionButton(value: unknown): value is ActionButton {
-        return sentry.objectOf({
-            name: sentry.unionOf(sentry.string, sentry.objectOf({})),
-            iconPath: sentry.optionalOf(sentry.string),
-            callbacks: sentry.setOf(sentry.function),
+        return sentry.structOf({
+            name: sentry.unionOf(sentry.string, sentry.structOf({})),
+            iconPath: sentry.undefindableOf(sentry.string),
+            callbacks: sentry.setOf(sentry.functionOf([sentry.classOf(Player)], sentry.void)),
             tags: sentry.arrayOf(sentry.string),
             type: sentry.string
-        }).test(value) && value.type === ElementType.ACTION_BUTTON
+        }).test(value) && value.type === ElementType.ACTION_BUTTON;
     }
 
     /**
@@ -70,11 +70,11 @@ export class ServerFormElementPredicates {
      * @returns `value`が`ModalFormElement`であれば真
      */
     public static isModalFormElement(value: unknown): value is ModalFormElement {
-        return sentry.objectOf({
+        return sentry.structOf({
             id: sentry.string,
-            label: sentry.unionOf(sentry.string, sentry.objectOf({})),
+            label: sentry.unionOf(sentry.string, sentry.structOf({})),
             type: sentry.string
-        }).test(value) && value.type === ElementType.MODAL_FORM_ELEMENT
+        }).test(value) && value.type === ElementType.MODAL_FORM_ELEMENT;
     }
 
     /**
@@ -83,9 +83,9 @@ export class ServerFormElementPredicates {
      */
     public static isToggle(value: unknown): value is ModalFormToggle {
         return ServerFormElementPredicates.isModalFormElement(value)
-            && sentry.objectOf({
+            && sentry.structOf({
                 defaultValue: sentry.boolean
-            }).test(value)
+            }).test(value);
     }
 
     /**
@@ -94,8 +94,8 @@ export class ServerFormElementPredicates {
      */
     public static isSlider(value: unknown): value is ModalFormSlider {
         return ServerFormElementPredicates.isModalFormElement(value)
-            && sentry.objectOf({
-                range: numberRangeType,
+            && sentry.structOf({
+                range: numberRangeModel,
                 step: sentry.number,
                 defaultValue: sentry.number
             }).test(value)
@@ -107,8 +107,8 @@ export class ServerFormElementPredicates {
      */
     public static isDropdown(value: unknown): value is ModalFormDropdown {
         return ServerFormElementPredicates.isModalFormElement(value)
-            && sentry.objectOf({
-                list: sentry.arrayOf(dropdownOptionType),
+            && sentry.structOf({
+                list: sentry.arrayOf(dropdownOptionModel),
                 defaultValueIndex: sentry.int
             }).test(value)
     }
@@ -119,8 +119,8 @@ export class ServerFormElementPredicates {
      */
     public static isTextField(value: unknown): value is ModalFormTextField {
         return ServerFormElementPredicates.isModalFormElement(value)
-            && sentry.objectOf({
-                placeHolder: sentry.unionOf(sentry.string, sentry.objectOf({})),
+            && sentry.structOf({
+                placeHolder: sentry.unionOf(sentry.string, sentry.structOf({})),
                 defaultValue: sentry.string
             }).test(value)
     }
@@ -130,9 +130,9 @@ export class ServerFormElementPredicates {
      * @returns `value`が`MessageButton`であれば真
      */
     public static isMessageButton(value: unknown): value is MessageButton {
-        return sentry.objectOf({
-            name: sentry.unionOf(sentry.string, sentry.objectOf({})),
-            callbacks: sentry.setOf(sentry.function),
+        return sentry.structOf({
+            name: sentry.unionOf(sentry.string, sentry.structOf({})),
+            callbacks: sentry.setOf(sentry.functionOf([sentry.classOf(Player)], sentry.void)),
             type: sentry.string
         }).test(value) && value.type === ElementType.MESSAGE_BUTTON
     }
@@ -142,7 +142,7 @@ export class ServerFormElementPredicates {
      * @returns `value`が`Decoration`であれば真
      */
     public static isDecoration(value: unknown): value is Decoration {
-        return sentry.objectOf({
+        return sentry.structOf({
             id: sentry.string
         }).test(value)
     }
@@ -306,7 +306,7 @@ export interface ActionPushable {
      * @param callbackFn コールバック関数
      * @returns `this`
      */
-    onPush(predicate: (button: ActionButton) => boolean, callbackFn: (player: ServerFormActionButtonPushEvent) => void): ActionPushable;
+    onPush(callbackFn: (player: ServerFormActionButtonPushEvent) => void): ActionPushable;
 }
 
 /**
@@ -728,7 +728,7 @@ export interface ActionFormElementDefinitions extends DecorationDefinitions {
      * 条件に一致するボタンを取得します。
      * @param predicate ボタンの条件
      */
-    getButtonByPredicate(predicate: (button: ActionButton) => boolean): ActionButton[];
+    getButtons(predicate?: (button: ActionButton) => boolean): ActionButton[];
 
     /**
      * 全ての要素を含む配列を取得します。
@@ -773,7 +773,7 @@ export interface ModalFormElementDefinitions extends DecorationDefinitions {
      * 条件に一致する要素を取得します。
      * @param predicate 要素の条件
      */
-    getModalFormElementByPredicate<T extends ModalFormElement>(predicate: (element: ModalFormElement) => element is T): T[];
+    getElements<T extends ModalFormElement>(predicate?: (element: ModalFormElement) => element is T): T[];
 
     /**
      * 全ての要素を含む配列を取得します。
@@ -815,10 +815,10 @@ export class ActionFormWrapper extends ServerFormWrapper implements ActionPushab
             get: (): ActionFormElementDefinitions => {
                 const that = this;
                 return {
-                    getButtonByPredicate(predicate) {
+                    getButtons(predicate) {
                         return that.values
                             .filter(ServerFormElementPredicates.isActionButton)
-                            .filter(predicate);
+                            .filter(predicate ?? (() => true));
                     },
                     getLabel(id) {
                         return that.values.filter(ServerFormElementPredicates.isLabel)
@@ -834,7 +834,7 @@ export class ActionFormWrapper extends ServerFormWrapper implements ActionPushab
                     },
                     getAll() {
                         return that.values;
-                    },
+                    }
                 };
             }
         });
@@ -908,11 +908,9 @@ export class ActionFormWrapper extends ServerFormWrapper implements ActionPushab
      * @param predicate ボタンの条件
      * @param callbackFn コールバック関数
      */
-    public onPush(predicate: (button: ActionButton) => boolean, callbackFn: (event: ServerFormActionButtonPushEvent) => void): this {
+    public onPush(callbackFn: (event: ServerFormActionButtonPushEvent) => void): this {
         this.pushEventCallbacks.add(event => {
-            if (predicate(event.button)) {
-                callbackFn(event);
-            }
+            callbackFn(event);
         });
         return this;
     }
@@ -981,7 +979,7 @@ export class ActionFormWrapper extends ServerFormWrapper implements ActionPushab
                 return;
             }
 
-            const button: ActionButton = this.values.filter(ServerFormElementPredicates.isActionButton)[response.selection];
+            const button: ActionButton = this.values.filter(ServerFormElementPredicates.isActionButton)[response.selection]!;
 
             if (button.callbacks.size > 0) {
                 button.callbacks.forEach(callbackFn => {
@@ -1054,11 +1052,14 @@ export class ModalFormWrapper extends ServerFormWrapper implements Submittable, 
                     getSubmitButton() {
                         return that.submitButtonInfo;
                     },
-                    getModalFormElementByPredicate<T extends ModalFormElement>(predicate: (element: ModalFormElement) => element is T) {
+                    getElements<T extends ModalFormElement>(predicate?: (element: ModalFormElement) => element is T) {
                         const vals: T[] = [];
                         for (const val of that.values.filter(ServerFormElementPredicates.isModalFormElement)) {
                             const v = val as ModalFormElement;
-                            if (predicate(v)) {
+                            if (predicate === undefined) {
+                                vals.push(v as T);
+                            }
+                            else if (predicate(v)) {
                                 vals.push(v);
                             }
                         }
@@ -1266,7 +1267,7 @@ export class ModalFormWrapper extends ServerFormWrapper implements Submittable, 
                 if (index === -1) {
                     throw new ServerFormError(new Error("指定されたIDの要素が見つかりませんでした"));
                 }
-                else if (predicate(elements[index])) return index;
+                else if (predicate(elements[index]!)) return index;
                 else {
                     throw new ServerFormError(new Error("指定されたIDの要素の型が正しくありません: " + JSON.stringify(elements) + ", " + predicate.toString() + ", " + id + ", " + index));
                 }
@@ -1290,7 +1291,7 @@ export class ModalFormWrapper extends ServerFormWrapper implements Submittable, 
                     return {
                         index: optionIndex,
                         value: (elements[index] as ModalFormDropdown).list[optionIndex]
-                    };
+                    } as SelectedDropdownValue;
                 },
                 getTextFieldInput(id) {
                     const index = getMatchingElementIndex(id, ServerFormElementPredicates.isTextField);
@@ -1427,7 +1428,6 @@ export class MessageFormWrapper extends ServerFormWrapper implements MessagePush
             .button1(this.buttonPair[0].name)
             .button2(this.buttonPair[1].name);
 
-        // @ts-ignore "@minecraft/server"のPlayerと"@minecraft/server-ui"のPlayerが一致しないんだよねなんか
         const promise = form.show(player).then(response => {
             if (response.selection === undefined) {
                 const that = this;
