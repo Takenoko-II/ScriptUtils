@@ -126,10 +126,10 @@ class RegistryKey<V> {
 }
 
 class RegistryEntry<V> {
-    public constructor(public readonly identifier: Identifier, public readonly value: Readonly<V>) {}
+    public constructor(public readonly identifier: Identifier, public readonly value: V) {}
 }
 
-abstract class Registry<V> {
+export abstract class Registry<V> {
     private readonly key: RegistryKey<V>;
 
     protected readonly entries = new Set<RegistryEntry<V>>();
@@ -152,7 +152,7 @@ abstract class Registry<V> {
         return false;
     }
 
-    public get(identifier: Identifier): Readonly<V> {
+    public get(identifier: Identifier): V {
         if (!this.contains(identifier)) {
             throw new RegistryError("存在しないキーです: " + identifier);
         }
@@ -219,7 +219,7 @@ class MutableRegistry<V> extends Registry<V> {
     }
 }
 
-class RegistryRegistrar<V> {
+export class RegistryRegistrar<V> {
     private static readonly CONSTRUCTION_PREVENTION_SYMBOL = Symbol(RegistryRegistrar.name);
 
     private readonly _: typeof RegistryRegistrar.CONSTRUCTION_PREVENTION_SYMBOL = RegistryRegistrar.CONSTRUCTION_PREVENTION_SYMBOL;
